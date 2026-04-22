@@ -11,6 +11,9 @@ export default defineConfig({
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/codezerg/SmartData' },
 			],
+			components: {
+				SocialIcons: './src/components/TopNav.astro',
+			},
 			sidebar: [
 				{
 					label: 'Overview',
