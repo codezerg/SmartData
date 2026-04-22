@@ -1,0 +1,28 @@
+@model (string Db, string Table, string ActiveTab)
+@{
+    var db = Model.Db;
+    var table = Model.Table;
+    var active = Model.ActiveTab;
+
+    var tabs = new[] {
+        ("data", "table_chart", "Data"),
+        ("schema", "schema", "Schema"),
+        ("query", "filter_alt", "Query"),
+        ("export", "download", "Export"),
+        ("import", "upload", "Import"),
+        ("tracking", "history", "Tracking")
+    };
+}
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label) in tabs)
+    {
+        var isActive = active == tab;
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="/@Routes.Prefix/db/@db/tables/@table/@tab"
+           hx-target="#content"
+           hx-push-url="true">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>

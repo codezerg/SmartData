@@ -1,0 +1,71 @@
+@model VerifyViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_TrackingTabs", (TrackingPageViewModel)Model)
+
+@{
+    var r = Model.Result;
+    var statusBadge = r is null
+        ? ("bg-slate-100 text-slate-600", "UNKNOWN")
+        : r.Valid
+            ? ("bg-emerald-100 text-emerald-800", "VALID")
+            : ("bg-rose-100 text-rose-800", "INVALID");
+}
+
+<h3 class="text-sm font-bold text-on-surface mb-3">
+    <span class="material-symbols-outlined text-[18px] mr-1 align-text-bottom">verified</span>
+    @Model.Table — Chain verification
+</h3>
+
+@if (r is null)
+{
+    <div class="border border-outline-variant/20 p-4 text-sm text-slate-500">Not ledgered.</div>
+}
+else
+{
+    <div class="bg-surface-container-lowest border border-outline-variant/20 p-5 mb-4">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="inline-flex items-center text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full @statusBadge.Item1">@statusBadge.Item2</span>
+            <span class="text-sm text-slate-500">@r.EntriesVerified entries verified</span>
+        </div>
+
+        @if (!r.InternalConsistencyValid)
+        {
+            <div class="border-l-4 border-rose-400 bg-rose-50 p-3 mb-3 text-sm">
+                <div class="font-semibold text-rose-800">Internal chain broken</div>
+                <div class="mt-1 text-rose-700">
+                    <span class="font-mono">@r.FailureKind</span> at LedgerId <span class="font-mono font-bold">@r.FirstBadLedgerId</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-sm text-slate-700">Forward-walk clean: every row self-hashes and forward-links to the next.</div>
+        }
+    </div>
+
+    @if (r.AnchorsChecked > 0)
+    {
+        <div class="bg-surface-container-lowest border border-outline-variant/20 p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Anchors</h4>
+            <div class="grid grid-cols-3 gap-4 text-sm mb-4">
+                <div><span class="text-slate-500">Checked:</span> <span class="font-semibold">@r.AnchorsChecked</span></div>
+                <div><span class="text-slate-500">Matched:</span> <span class="font-semibold">@r.AnchorsMatched</span></div>
+                <div><span class="text-slate-500">Superseded:</span> <span class="font-semibold">@r.AnchorsSuperseded</span></div>
+            </div>
+            @if (r.AnchorFailures.Count > 0)
+            {
+                <div class="border-l-4 border-amber-400 bg-amber-50 p-3 text-sm">
+                    @foreach (var f in r.AnchorFailures)
+                    {
+                        <div class="mb-1"><span class="font-mono">@f.Kind</span> at LedgerId @f.AnchorLedgerId (@f.AnchorTime:u)</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <p class="text-xs text-slate-400 mt-4">
+        Internal verification is forward-walk only — cascade rewrites and tail truncation require anchored verification against an
+        external digest archive. Download the current head via the <strong>Digest</strong> tab.
+    </p>
+}

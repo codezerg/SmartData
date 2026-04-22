@@ -1,0 +1,88 @@
+@{
+    Layout = null;
+    var error = ViewData["Error"] as string;
+    var returnUrl = ViewData["ReturnUrl"] as string ?? "";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmartData Console — Login</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#f7f9fb",
+            "on-surface": "#191c1e",
+            "primary": "#3525cd",
+            "primary-container": "#4f46e5",
+            "on-primary": "#ffffff",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+          },
+          fontFamily: { "body": ["Inter"] },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem" },
+        },
+      },
+    }
+    </script>
+    <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        vertical-align: middle;
+    }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-sm">
+        <!-- Brand -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-primary-container rounded-lg mb-4">
+                <span class="material-symbols-outlined text-on-primary text-2xl">database</span>
+            </div>
+            <div class="text-primary font-black text-lg tracking-wide">SmartData</div>
+            <div class="text-[11px] text-slate-500 uppercase tracking-widest font-bold">Console</div>
+        </div>
+
+        <!-- Login form -->
+        <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+            <h2 class="text-lg font-bold text-on-surface mb-5">Sign in</h2>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="bg-error-container text-error text-sm font-medium px-4 py-2.5 rounded-sm mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">error</span>
+                    @error
+                </div>
+            }
+
+            <form method="post" action="/@Routes.Prefix/login">
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-on-surface mb-1">Username</label>
+                    <input type="text" name="username" required autofocus
+                           class="w-full bg-white border border-slate-200 rounded-sm py-2 px-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" />
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-on-surface mb-1">Password</label>
+                    <input type="password" name="password" required
+                           class="w-full bg-white border border-slate-200 rounded-sm py-2 px-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" />
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2.5 text-sm font-bold rounded-sm shadow-sm hover:opacity-90 transition-all">
+                    Sign in
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+@model TrackingPageViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_TrackingTabs", Model)
+
+<div class="border border-outline-variant/20 p-6 text-center text-slate-500">
+    <span class="material-symbols-outlined text-[48px] text-slate-300 mb-2">history_toggle_off</span>
+    <p class="text-sm">
+        <span class="font-semibold">@Model.Table</span> is not tracked in database <span class="font-mono">@Model.Db</span>.
+    </p>
+    <p class="text-xs mt-2">
+        Apply <code>[Tracked]</code> or <code>[Ledger]</code> to the entity class and restart the app to enable tracking.
+    </p>
+</div>

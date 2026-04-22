@@ -1,0 +1,274 @@
+@model MetricsViewModel
+@{
+    var active = Model.ActiveTab;
+    var items = Model.Metrics.Items;
+    var counters = items.Where(m => m.Type == "counter").ToList();
+    var histograms = items.Where(m => m.Type == "histogram").ToList();
+    var gauges = items.Where(m => m.Type == "gauge").ToList();
+
+    var tabs = new[] {
+        ("overview", "dashboard", "Overview"),
+        ("counters", "tag", $"Counters ({counters.Count})"),
+        ("histograms", "bar_chart", $"Histograms ({histograms.Count})"),
+        ("gauges", "speed", $"Gauges ({gauges.Count})")
+    };
+
+    // Aggregate counters (multiple entries per tag combination)
+    var totalRequests = counters.Where(m => m.Name == "rpc.requests").Sum(m => m.Value);
+    var totalErrors = counters.Where(m => m.Name == "rpc.errors").Sum(m => m.Value);
+
+    // Aggregate histograms (weighted average by count)
+    var rpcDurations = histograms.Where(m => m.Name == "rpc.duration_ms").ToList();
+    var rpcCount = rpcDurations.Sum(m => m.Count ?? 0);
+    var rpcP50 = rpcCount > 0 ? rpcDurations.Sum(m => (m.P50 ?? 0) * (m.Count ?? 0)) / rpcCount : 0;
+    var rpcP95 = rpcCount > 0 ? rpcDurations.Sum(m => (m.P95 ?? 0) * (m.Count ?? 0)) / rpcCount : 0;
+    var rpcP99 = rpcCount > 0 ? rpcDurations.Sum(m => (m.P99 ?? 0) * (m.Count ?? 0)) / rpcCount : 0;
+
+    var sqlDurations = histograms.Where(m => m.Name == "sql.duration_ms").ToList();
+    var sqlCount = sqlDurations.Sum(m => m.Count ?? 0);
+    var sqlP50 = sqlCount > 0 ? sqlDurations.Sum(m => (m.P50 ?? 0) * (m.Count ?? 0)) / sqlCount : 0;
+    var sqlP95 = sqlCount > 0 ? sqlDurations.Sum(m => (m.P95 ?? 0) * (m.Count ?? 0)) / sqlCount : 0;
+
+    // Aggregate gauges
+    var activeSessions = gauges.Where(m => m.Name == "auth.active_sessions").Sum(m => m.Value);
+    var activeRequests = gauges.Where(m => m.Name == "rpc.active_requests").Sum(m => m.Value);
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">monitoring</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Metrics</h2>
+    <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
+        <input type="checkbox" id="auto-refresh-toggle" class="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500"
+               onchange="toggleAutoRefresh(this.checked)">
+        <span>Auto-refresh</span>
+    </label>
+</div>
+
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-3 mb-6">
+    <input type="text"
+           name="name"
+           value="@Model.FilterName"
+           placeholder="Filter by metric name..."
+           hx-get="/@Routes.Prefix/metrics"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='source'],[name='tab']"
+           class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64">
+    <select name="source"
+            hx-get="/@Routes.Prefix/metrics"
+            hx-target="#content"
+            hx-push-url="true"
+            hx-include="[name='name'],[name='tab']"
+            class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        <option value="live" selected="@(Model.FilterSource != "db")">Live</option>
+        <option value="db" selected="@(Model.FilterSource == "db")">Historical</option>
+    </select>
+    <input type="hidden" name="tab" value="@active">
+    <span class="text-xs text-slate-400">@Model.Metrics.Total metric(s)</span>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label) in tabs)
+    {
+        var isActive = active == tab;
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="/@Routes.Prefix/metrics?tab=@tab"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-include="[name='name'],[name='source']">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>
+
+<div id="metrics-content">
+@if (active == "overview")
+{
+    <!-- Overview Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Requests</div>
+            <div class="text-lg font-semibold text-slate-900">@totalRequests.ToString("N0")</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Errors</div>
+            <div class="text-lg font-semibold text-red-600">@totalErrors.ToString("N0")</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Active Sessions</div>
+            <div class="text-lg font-semibold text-slate-900">@activeSessions.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">RPC Latency P50</div>
+            <div class="text-lg font-semibold text-slate-900">@rpcP50.ToString("0.#") ms</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">RPC Latency P95</div>
+            <div class="text-lg font-semibold text-slate-900">@rpcP95.ToString("0.#") ms</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">RPC Latency P99</div>
+            <div class="text-lg font-semibold @(rpcP99 > 1000 ? "text-amber-600" : "text-slate-900")">@rpcP99.ToString("0.#") ms</div>
+        </div>
+    </div>
+    @if (sqlCount > 0)
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white border border-slate-200 rounded-sm p-5">
+                <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">SQL Latency P50</div>
+                <div class="text-lg font-semibold text-slate-900">@sqlP50.ToString("0.#") ms</div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-sm p-5">
+                <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">SQL Latency P95</div>
+                <div class="text-lg font-semibold text-slate-900">@sqlP95.ToString("0.#") ms</div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-sm p-5">
+                <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Active Requests</div>
+                <div class="text-lg font-semibold text-slate-900">@activeRequests.ToString("N0")</div>
+            </div>
+        </div>
+    }
+}
+else if (active == "counters")
+{
+    @if (counters.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">tag</span>
+            <div class="font-semibold text-slate-600 mb-1">No Counters</div>
+            <div class="text-sm text-slate-400">No counter metrics recorded yet.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Name</th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Tags</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Value</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-44">Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in counters)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5 font-mono text-sm font-medium text-slate-900">@m.Name</td>
+                            <td class="px-4 py-2.5 text-xs text-slate-500">@(m.Tags ?? "—")</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@m.Value.ToString("N0")</td>
+                            <td class="px-4 py-2.5 text-right text-slate-500 text-sm">@m.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else if (active == "histograms")
+{
+    @if (histograms.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">bar_chart</span>
+            <div class="font-semibold text-slate-600 mb-1">No Histograms</div>
+            <div class="text-sm text-slate-400">No histogram metrics recorded yet.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Name</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Count</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Min</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">P50</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">P95</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">P99</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Max</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in histograms)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5 font-mono text-sm font-medium text-slate-900">@m.Name</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@((m.Count ?? 0).ToString("N0"))</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-500">@((m.Min ?? 0).ToString("0.#"))</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@((m.P50 ?? 0).ToString("0.#"))</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@((m.P95 ?? 0).ToString("0.#"))</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm font-medium text-slate-900">@((m.P99 ?? 0).ToString("0.#"))</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-500">@((m.Max ?? 0).ToString("0.#"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else if (active == "gauges")
+{
+    @if (gauges.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">speed</span>
+            <div class="font-semibold text-slate-600 mb-1">No Gauges</div>
+            <div class="text-sm text-slate-400">No gauge metrics recorded yet.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Name</th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Tags</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Value</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-44">Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in gauges)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5 font-mono text-sm font-medium text-slate-900">@m.Name</td>
+                            <td class="px-4 py-2.5 text-xs text-slate-500">@(m.Tags ?? "—")</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@m.Value.ToString("N0")</td>
+                            <td class="px-4 py-2.5 text-right text-slate-500 text-sm">@m.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+</div>
+
+<script>
+    function toggleAutoRefresh(enabled) {
+        var el = document.getElementById('metrics-content');
+        if (enabled) {
+            el.setAttribute('hx-get', '/@Routes.Prefix/metrics?tab=@active');
+            el.setAttribute('hx-target', '#content');
+            el.setAttribute('hx-trigger', 'every 5s');
+            htmx.process(el);
+        } else {
+            el.removeAttribute('hx-get');
+            el.removeAttribute('hx-trigger');
+            htmx.process(el);
+        }
+    }
+</script>

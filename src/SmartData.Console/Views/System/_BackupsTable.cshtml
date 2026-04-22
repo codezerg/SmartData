@@ -1,0 +1,98 @@
+@model BackupsViewModel
+@{
+    string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):0.#} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):0.#} GB";
+    }
+}
+
+<div id="backups-table">
+    @if (Model.ActiveJob != null)
+    {
+        @await Html.PartialAsync("_BackupJobProgress", Model.ActiveJob)
+    }
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="mb-4">
+            @await Html.PartialAsync("_Alert", ("success", "check_circle", Model.SuccessMessage))
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="mb-4">
+            @await Html.PartialAsync("_Alert", ("error", "error", Model.ErrorMessage))
+        </div>
+    }
+
+    @if (Model.Backups.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">backup</span>
+            <div class="font-semibold text-slate-600 mb-1">No Backups</div>
+            <div class="text-sm text-slate-400">No backups have been created yet.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Backup ID</th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Databases</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Size</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Created</th>
+                        <th class="px-4 py-2.5"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var backup in Model.Backups)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5 font-mono text-sm">@backup.BackupId</td>
+                            <td class="px-4 py-2.5">
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach (var db in backup.Databases)
+                                    {
+                                        <span class="inline-flex items-center bg-indigo-50 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-sm">@db</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 font-mono text-sm">@FormatSize(backup.Size)</td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 text-sm">@backup.Created.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-right px-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <a href="/@Routes.Prefix/backups/@backup.BackupId/download"
+                                       title="Download"
+                                       class="text-slate-400 hover:text-primary transition-colors p-1 rounded-sm hover:bg-slate-100">
+                                        <span class="material-symbols-outlined text-[18px]">download</span>
+                                    </a>
+                                    <button title="Restore"
+                                            hx-post="/@Routes.Prefix/backups/@backup.BackupId/restore"
+                                            hx-target="#backups-table"
+                                            hx-swap="outerHTML"
+                                            hx-vals='{"force": true}'
+                                            hx-confirm="Restore backup '@backup.BackupId'? This will overwrite existing databases: @string.Join(", ", backup.Databases)"
+                                            class="text-slate-400 hover:text-amber-500 transition-colors p-1 rounded-sm hover:bg-amber-50">
+                                        <span class="material-symbols-outlined text-[18px]">settings_backup_restore</span>
+                                    </button>
+                                    <button title="Delete"
+                                            hx-delete="/@Routes.Prefix/backups/@backup.BackupId"
+                                            hx-target="#backups-table"
+                                            hx-swap="outerHTML"
+                                            hx-confirm="Delete backup '@backup.BackupId'?"
+                                            class="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-sm hover:bg-red-50">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

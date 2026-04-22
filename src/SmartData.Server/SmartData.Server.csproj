@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Description>SmartData server engine — AutoRepo ORM, stored procedure framework, and embedded admin console.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="linq2db" Version="5.4.1" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\SmartData.Contracts\SmartData.Contracts.csproj" />
+		<ProjectReference Include="..\SmartData.Core\SmartData.Core.csproj" />
+	</ItemGroup>
+</Project>

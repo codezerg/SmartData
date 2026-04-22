@@ -1,0 +1,5 @@
+@model DataGridViewModel
+@if (Model.Rows.Count > 0)
+{
+    @await Html.PartialAsync("_Rows", Model)
+}

@@ -1,0 +1,54 @@
+@model SchedulerListViewModel
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">schedule</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Schedulers</h2>
+    <div class="flex items-center gap-2">
+        <a href="/@Routes.Prefix/schedulers/history"
+           hx-get="/@Routes.Prefix/schedulers/history"
+           hx-target="#content"
+           hx-push-url="true"
+           class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors px-3 py-1.5 rounded-sm hover:bg-slate-100 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">history</span>
+            History
+        </a>
+        <a href="/@Routes.Prefix/schedulers/stats"
+           hx-get="/@Routes.Prefix/schedulers/stats"
+           hx-target="#content"
+           hx-push-url="true"
+           class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors px-3 py-1.5 rounded-sm hover:bg-slate-100 flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">monitoring</span>
+            Stats
+        </a>
+    </div>
+</div>
+
+<div class="mb-4 flex items-center gap-2">
+    <input type="search"
+           name="search"
+           value="@Model.Search"
+           placeholder="Search procedure or schedule name…"
+           hx-get="/@Routes.Prefix/schedulers"
+           hx-trigger="input changed delay:300ms, search"
+           hx-target="#content"
+           hx-push-url="true"
+           class="flex-1 bg-white border border-slate-200 px-3 py-1.5 text-sm rounded-sm focus:outline-none focus:border-primary" />
+    <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-sm p-0.5">
+        @foreach (var f in new[] { "all", "enabled", "disabled" })
+        {
+            var active = (Model.Filter ?? "all") == f;
+            <a href="/@Routes.Prefix/schedulers?filter=@f"
+               hx-get="/@Routes.Prefix/schedulers?filter=@f"
+               hx-target="#content"
+               hx-push-url="true"
+               class="@(active ? "bg-primary text-white" : "text-slate-500 hover:text-primary") px-2.5 py-1 text-xs font-semibold rounded-sm transition-colors">
+                @f
+            </a>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_ScheduleTable", Model)

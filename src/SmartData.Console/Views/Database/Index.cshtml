@@ -1,0 +1,174 @@
+@model DatabaseViewModel
+@{
+    var db = Model.Db;
+    var active = Model.ActiveTab;
+
+    string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):0.#} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):0.#} GB";
+    }
+
+    var tabs = new[] {
+        ("details", "info", "Details"),
+        ("tables", "table_chart", "Tables"),
+        ("backups", "backup", "Backups")
+    };
+}
+
+<!-- Database title -->
+<div class="mb-6">
+    <h1 class="text-xl font-bold text-slate-900 flex items-center gap-3">
+        <span class="material-symbols-outlined text-indigo-600">database</span>
+        @db
+    </h1>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label) in tabs)
+    {
+        var isActive = active == tab;
+        var href = tab == "details" ? $"/{Routes.Prefix}/db/{db}" : $"/{Routes.Prefix}/db/{db}/{tab}";
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="@href"
+           hx-target="#content"
+           hx-push-url="true">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>
+
+@if (active == "details")
+{
+    <!-- Details tab -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Database</div>
+            <div class="text-lg font-semibold text-slate-900">@db</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Size</div>
+            <div class="text-lg font-semibold text-slate-900">@FormatSize(Model.Size)</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-sm p-5">
+            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Tables</div>
+            <div class="text-lg font-semibold text-slate-900">@Model.Tables.Count</div>
+        </div>
+    </div>
+}
+else if (active == "tables")
+{
+    <!-- Tables tab -->
+    @if (Model.Tables.Count == 0)
+    {
+        <div class="text-slate-400 text-sm">No tables in this database.</div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Table</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Rows</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Columns</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var table in Model.Tables)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5">
+                                <a href="/@Routes.Prefix/db/@db/tables/@table.Name/data"
+                                   class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[16px]">table_chart</span>
+                                    @table.Name
+                                </a>
+                            </td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 font-mono text-sm">@table.RowCount.ToString("N0")</td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 font-mono text-sm">@table.ColumnCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else if (active == "backups")
+{
+    <!-- Backups tab -->
+    <div class="mb-4">
+        <form hx-post="/@Routes.Prefix/backups/create"
+              hx-target="#content"
+              hx-push-url="/@Routes.Prefix/db/@db/backups">
+            <input type="hidden" name="databases" value="@db">
+            <button type="submit"
+                    class="bg-gradient-to-br from-primary to-primary-container text-white px-4 py-1.5 text-sm font-bold rounded-sm shadow-sm flex items-center gap-1 hover:opacity-90 transition-all">
+                <span class="material-symbols-outlined text-[18px] mr-1">add</span>
+                Backup This Database
+            </button>
+        </form>
+    </div>
+
+    @if (Model.Backups.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">backup</span>
+            <div class="font-semibold text-slate-600 mb-1">No Backups</div>
+            <div class="text-sm text-slate-400">No backups contain this database.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Backup ID</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Size</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Created</th>
+                        <th class="px-4 py-2.5"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var backup in Model.Backups)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-2.5 font-mono text-sm">@backup.BackupId</td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 font-mono text-sm">@FormatSize(backup.Size)</td>
+                            <td class="px-4 py-2.5 text-right text-slate-600 text-sm">@backup.Created.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-right px-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <a href="/@Routes.Prefix/backups/@backup.BackupId/download"
+                                       title="Download"
+                                       class="text-slate-400 hover:text-primary transition-colors p-1 rounded-sm hover:bg-slate-100">
+                                        <span class="material-symbols-outlined text-[18px]">download</span>
+                                    </a>
+                                    <button title="Restore"
+                                            hx-post="/@Routes.Prefix/backups/@backup.BackupId/restore"
+                                            hx-target="#content"
+                                            hx-vals='{"force": true}'
+                                            hx-confirm="Restore backup '@backup.BackupId'? This will overwrite existing databases: @string.Join(", ", backup.Databases)"
+                                            class="text-slate-400 hover:text-amber-500 transition-colors p-1 rounded-sm hover:bg-amber-50">
+                                        <span class="material-symbols-outlined text-[18px]">settings_backup_restore</span>
+                                    </button>
+                                    <button title="Delete"
+                                            hx-delete="/@Routes.Prefix/backups/@backup.BackupId"
+                                            hx-target="#content"
+                                            hx-confirm="Delete backup '@backup.BackupId'?"
+                                            class="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-sm hover:bg-red-50">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

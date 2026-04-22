@@ -1,0 +1,81 @@
+@model SchedulerListViewModel
+
+<div id="schedule-table">
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-sm text-sm mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+            @Model.SuccessMessage
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-sm text-sm mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">error</span>
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200">
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Procedure</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Schedule</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Next Run</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Last Run</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Outcome</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Enabled</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Schedules.Count == 0)
+                {
+                    <tr><td colspan="6" class="px-3 py-6 text-center text-slate-400 text-sm">No schedules match.</td></tr>
+                }
+                @foreach (var s in Model.Schedules)
+                {
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-3 py-2">
+                            <a href="/@Routes.Prefix/schedulers/@s.Id"
+                               hx-get="/@Routes.Prefix/schedulers/@s.Id"
+                               hx-target="#content"
+                               hx-push-url="true"
+                               class="block mono text-xs font-semibold text-primary hover:underline">@s.ProcedureName</a>
+                            <div class="mono text-[11px] text-slate-400 mt-0.5">@s.Name</div>
+                        </td>
+                        <td class="px-3 py-2 text-xs text-slate-500">@s.FreqSummary</td>
+                        <td class="px-3 py-2 text-xs text-slate-500 mono">@(s.NextRunOn?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                        <td class="px-3 py-2 text-xs text-slate-400 mono">@(s.LastRunOn?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                        <td class="px-3 py-2 text-xs">
+                            @{
+                                var outcome = s.LastOutcome ?? "—";
+                                var (bg, fg) = outcome switch
+                                {
+                                    "Succeeded" => ("bg-emerald-50", "text-emerald-600"),
+                                    "Failed"    => ("bg-red-50", "text-red-600"),
+                                    "Running"   => ("bg-blue-50", "text-blue-600"),
+                                    "Claimed"   => ("bg-slate-100", "text-slate-600"),
+                                    "Cancelled" => ("bg-amber-50", "text-amber-600"),
+                                    _ => ("", "text-slate-400"),
+                                };
+                            }
+                            <span class="@bg @fg inline-flex items-center px-2 py-0.5 rounded-sm font-semibold">@outcome</span>
+                        </td>
+                        <td class="px-3 py-2">
+                            <form hx-post="/@Routes.Prefix/schedulers/@s.Id/toggle"
+                                  hx-target="#schedule-table"
+                                  hx-swap="outerHTML">
+                                <input type="hidden" name="enabled" value="@((!s.Enabled).ToString().ToLowerInvariant())" />
+                                <button type="submit"
+                                        class="@(s.Enabled ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200") text-xs font-semibold px-2 py-0.5 rounded-sm transition-colors">
+                                    @(s.Enabled ? "On" : "Off")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

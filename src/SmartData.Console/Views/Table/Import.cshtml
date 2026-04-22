@@ -1,0 +1,27 @@
+@model ImportViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_Tabs", (Model.Db, Model.Table, "import"))
+
+<p class="text-slate-500 text-sm mb-4">
+    Import rows into <strong>@Model.Table</strong> from a JSON file.
+</p>
+
+<!-- Step 1: file upload -> preview -->
+<form enctype="multipart/form-data"
+      hx-post="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/import/preview"
+      hx-target="#import-area"
+      hx-swap="innerHTML"
+      class="mb-4">
+    <div class="mb-4" style="max-width: 400px;">
+        <label class="block text-sm font-semibold text-on-surface mb-1">JSON File</label>
+        <input type="file" name="file" accept=".json" required
+               class="block w-full text-sm text-slate-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-sm file:border file:border-slate-200 file:text-sm file:font-semibold file:bg-white file:text-slate-700 hover:file:bg-slate-50" />
+    </div>
+    <button type="submit"
+            class="px-4 py-1.5 border border-indigo-300 text-indigo-600 text-sm font-bold rounded-sm hover:bg-indigo-50 transition-colors flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-1">visibility</span>
+        Preview
+    </button>
+</form>
+
+<div id="import-area"></div>

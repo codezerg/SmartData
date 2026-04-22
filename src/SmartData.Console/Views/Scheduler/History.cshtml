@@ -1,0 +1,102 @@
+@model SchedulerHistoryViewModel
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <a href="/@Routes.Prefix/schedulers"
+       hx-get="/@Routes.Prefix/schedulers"
+       hx-target="#content"
+       hx-push-url="true"
+       class="flex items-center gap-1 hover:text-primary">
+        <span class="material-symbols-outlined text-[14px]">arrow_back</span>
+        <span class="uppercase tracking-widest">Schedulers</span>
+    </a>
+</div>
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Run history</h2>
+</div>
+
+<div class="mb-4 flex items-center gap-2">
+    <select name="outcome"
+            hx-get="/@Routes.Prefix/schedulers/history"
+            hx-trigger="change"
+            hx-target="#content"
+            hx-push-url="true"
+            hx-include="[name=outcome],[name=procedureName],[name=limit]"
+            class="bg-white border border-slate-200 px-3 py-1.5 text-sm rounded-sm">
+        <option value="">all outcomes</option>
+        @foreach (var o in new[] { "Succeeded", "Failed", "Cancelled", "Running", "Claimed" })
+        {
+            if (Model.Outcome == o)
+            {
+                <option value="@o" selected>@o</option>
+            }
+            else
+            {
+                <option value="@o">@o</option>
+            }
+        }
+    </select>
+    <input type="text" name="procedureName" value="@Model.ProcedureName"
+           placeholder="filter by procedure name…"
+           hx-get="/@Routes.Prefix/schedulers/history"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-include="[name=outcome],[name=procedureName],[name=limit]"
+           class="flex-1 bg-white border border-slate-200 px-3 py-1.5 text-sm rounded-sm" />
+    <input type="number" name="limit" value="@Model.Limit" min="10" max="1000"
+           hx-get="/@Routes.Prefix/schedulers/history"
+           hx-trigger="change"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-include="[name=outcome],[name=procedureName],[name=limit]"
+           class="w-20 bg-white border border-slate-200 px-3 py-1.5 text-sm rounded-sm" />
+</div>
+
+<div class="bg-white border border-outline-variant/20 rounded-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-slate-200">
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Started</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Procedure</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Schedule</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Attempt</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Outcome</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Duration</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Runs.Count == 0)
+            {
+                <tr><td colspan="7" class="px-3 py-6 text-center text-slate-400 text-sm">No runs match.</td></tr>
+            }
+            @foreach (var r in Model.Runs)
+            {
+                var (bg, fg) = r.Outcome switch
+                {
+                    "Succeeded" => ("bg-emerald-50", "text-emerald-600"),
+                    "Failed"    => ("bg-red-50", "text-red-600"),
+                    "Running"   => ("bg-blue-50", "text-blue-600"),
+                    "Claimed"   => ("bg-slate-100", "text-slate-600"),
+                    "Cancelled" => ("bg-amber-50", "text-amber-600"),
+                    _ => ("", "text-slate-400"),
+                };
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="px-3 py-2 mono text-xs text-slate-600">@r.StartedOn.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td class="px-3 py-2 mono text-xs text-slate-600">@r.ProcedureName</td>
+                    <td class="px-3 py-2 text-xs">
+                        <a href="/@Routes.Prefix/schedulers/@r.ScheduleId"
+                           hx-get="/@Routes.Prefix/schedulers/@r.ScheduleId"
+                           hx-target="#content"
+                           hx-push-url="true"
+                           class="text-primary hover:underline">@r.ScheduleName</a>
+                    </td>
+                    <td class="px-3 py-2 text-xs">@r.AttemptNumber</td>
+                    <td class="px-3 py-2 text-xs"><span class="@bg @fg inline-flex px-2 py-0.5 rounded-sm font-semibold">@r.Outcome</span></td>
+                    <td class="px-3 py-2 mono text-xs text-slate-500">@r.DurationMs ms</td>
+                    <td class="px-3 py-2 text-xs text-slate-600">@(r.Message ?? "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,86 @@
+@{
+    var layout = ViewData["Layout"] as LayoutViewModel ?? new LayoutViewModel();
+    var currentPath = layout.CurrentPath;
+    var currentDb = layout.CurrentDb;
+    var databases = layout.Databases;
+    var username = layout.Username;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmartData Console</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#f7f9fb",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f2f4f6",
+            "surface-container": "#eceef0",
+            "surface-container-high": "#e6e8ea",
+            "surface-container-highest": "#e0e3e5",
+            "surface-dim": "#d8dadc",
+            "on-surface": "#191c1e",
+            "on-surface-variant": "#464555",
+            "on-background": "#191c1e",
+            "primary": "#3525cd",
+            "primary-container": "#4f46e5",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#dad7ff",
+            "secondary": "#58579b",
+            "secondary-container": "#b6b4ff",
+            "on-secondary-container": "#454386",
+            "tertiary": "#7e3000",
+            "tertiary-container": "#a44100",
+            "tertiary-fixed": "#ffdbcc",
+            "on-tertiary-fixed-variant": "#7b2f00",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            "outline": "#777587",
+            "outline-variant": "#c7c4d8",
+            "inverse-surface": "#2d3133",
+          },
+          fontFamily: {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"],
+            "mono": ["JetBrains Mono", "monospace"],
+          },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+        },
+      },
+    }
+    </script>
+    <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        vertical-align: middle;
+    }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+    .null-val { opacity: 0.35; font-style: italic; }
+    .sidebar-links { max-height: 50vh; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+    @await Html.PartialAsync("_Sidebar", (currentPath, currentDb, databases, username))
+    <div class="flex-1 ml-64 flex flex-col min-h-screen">
+        <main class="flex-1 p-6 overflow-auto bg-surface">
+            <div id="content">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+</body>
+</html>

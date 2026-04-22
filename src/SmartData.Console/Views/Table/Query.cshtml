@@ -1,0 +1,83 @@
+@model QueryViewModel
+@{
+    var colTypesJson = System.Text.Json.JsonSerializer.Serialize(Model.ColumnTypes);
+}
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_Tabs", (Model.Db, Model.Table, "query"))
+
+<!-- Filters -->
+<div class="mb-5">
+    <label class="block text-sm font-semibold text-on-surface mb-2">Filters</label>
+    <div id="qb-filters">
+        @await Html.PartialAsync("_FilterRow", (Model.ColumnNames, 0))
+    </div>
+    <button type="button" onclick="addFilter()"
+            class="mt-2 px-3 py-1.5 border border-slate-200 text-sm text-slate-600 rounded-sm hover:bg-slate-50 transition-colors flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-1">add</span>
+        Add Filter
+    </button>
+</div>
+
+<!-- Order By -->
+<div class="mb-5" style="max-width: 460px;">
+    <div class="flex gap-3">
+        <div class="flex-1">
+            <label class="block text-sm font-semibold text-on-surface mb-1">Order By</label>
+            <select id="qb-orderByCol-input"
+                    class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none w-full">
+                <option value="">None</option>
+                @foreach (var col in Model.ColumnNames)
+                {
+                    <option value="@col">@col</option>
+                }
+            </select>
+        </div>
+        <div style="width: 160px;">
+            <label class="block text-sm font-semibold text-on-surface mb-1">Direction</label>
+            <select id="qb-orderByDir-input"
+                    class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Limit -->
+<div class="mb-5">
+    <label class="block text-sm font-semibold text-on-surface mb-1">Limit</label>
+    <input type="number" value="100" id="qb-limit-input"
+           class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+           style="width: 120px;" />
+</div>
+
+<!-- Submit form -->
+<form id="qb-submit-form"
+      hx-post="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/query/execute"
+      hx-target="#qb-results"
+      hx-swap="innerHTML"
+      onsubmit="return prepareQuery()"
+      class="mb-5">
+    <input type="hidden" name="table" value="@Model.Table" />
+    <input type="hidden" name="filter" id="qb-filter-json" />
+    <input type="hidden" name="orderByCol" id="qb-orderByCol" />
+    <input type="hidden" name="orderByDir" id="qb-orderByDir" />
+    <input type="hidden" name="limit" id="qb-limit" />
+    <button type="submit"
+            class="bg-gradient-to-br from-primary to-primary-container text-white px-5 py-2 text-sm font-bold rounded-sm shadow-sm flex items-center gap-1 hover:opacity-90 transition-all">
+        <span class="material-symbols-outlined text-[18px] mr-1">play_arrow</span>
+        Run Query
+    </button>
+</form>
+
+<!-- Results area -->
+<div id="qb-results"></div>
+
+<!-- Hidden template for new filter rows -->
+<template id="filter-template">
+    @await Html.PartialAsync("_FilterRow", (Model.ColumnNames, -1))
+</template>
+
+<!-- Column type metadata + Query builder JS -->
+<script>window.__colTypes = @Html.Raw(colTypesJson);</script>
+<script src="/_content/SmartData.Console/js/query-builder.js"></script>

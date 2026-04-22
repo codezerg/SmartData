@@ -3,6 +3,18 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Astro docs site
+.astro/
+dist/
+.output/
+site/dist/
+
+# SmartData runtime
+data/
+*.db
+*.db-journal
+backups/
+
 # User-specific files
 *.rsuser
 *.suo

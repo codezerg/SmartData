@@ -1,0 +1,44 @@
+@model (List<string> Columns, int Index)
+@{
+    var operators = new (string Value, string Label)[] {
+        ("$eq", "= equals"),
+        ("$ne", "!= not equal"),
+        ("$gt", "> greater than"),
+        ("$gte", ">= greater or equal"),
+        ("$lt", "< less than"),
+        ("$lte", "<= less or equal"),
+        ("$contains", "contains"),
+        ("$starts", "starts with"),
+        ("$ends", "ends with"),
+        ("$like", "LIKE pattern"),
+        ("$in", "IN (comma-separated)"),
+        ("$nin", "NOT IN (comma-separated)"),
+        ("$null", "IS NULL"),
+        ("$notnull", "IS NOT NULL"),
+    };
+}
+<div class="qb-filter-row mb-2">
+    <div class="flex gap-2 items-center">
+        <select data-role="column"
+                class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none">
+            <option value="">Column...</option>
+            @foreach (var col in Model.Columns)
+            {
+                <option value="@col">@col</option>
+            }
+        </select>
+        <select data-role="operator" onchange="toggleValueInput(this)"
+                class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none">
+            @foreach (var (val, label) in operators)
+            {
+                <option value="@val">@label</option>
+            }
+        </select>
+        <input type="text" placeholder="Value" data-role="value"
+               class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none" />
+        <button type="button" onclick="this.closest('.qb-filter-row').remove()"
+                class="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-sm hover:bg-red-50">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+    </div>
+</div>

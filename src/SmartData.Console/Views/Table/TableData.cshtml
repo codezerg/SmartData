@@ -1,0 +1,25 @@
+@model DataGridViewModel
+@{
+    var searchParam = !string.IsNullOrEmpty(Model.Search) ? $"&search={Uri.EscapeDataString(Model.Search)}" : "";
+}
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_Tabs", (Model.Db, Model.Table, "data"))
+
+<!-- Search box -->
+<div class="mb-4">
+    <div class="relative" style="width: 320px;">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+        <input type="search"
+               name="search"
+               value="@(Model.Search ?? "")"
+               placeholder="Search rows..."
+               class="w-full bg-white border border-slate-200 rounded-sm py-1.5 pl-10 pr-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none"
+               hx-get="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/grid?limit=@Model.Limit&orderBy=@(Model.OrderBy ?? "")"
+               hx-target="#data-grid"
+               hx-trigger="input changed delay:300ms, search"
+               hx-include="this" />
+    </div>
+</div>
+
+<!-- Data grid -->
+@await Html.PartialAsync("_DataGrid", Model)

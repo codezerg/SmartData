@@ -1,0 +1,83 @@
+@model TraceDetailViewModel
+@{
+    var spans = Model.Spans;
+    var rootSpans = spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).ToList();
+    var totalDuration = spans.Count > 0 ? spans.Max(s => s.DurationMs) : 0;
+    var hasErrors = spans.Any(s => !string.IsNullOrEmpty(s.ErrorMessage));
+    var shortId = Model.TraceId.Length > 16 ? Model.TraceId[..16] + "..." : Model.TraceId;
+
+    // Build lookup for child spans
+    var childMap = spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId))
+        .GroupBy(s => s.ParentSpanId!)
+        .ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartTime).ToList());
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">timeline</span>
+    <a href="/@Routes.Prefix/traces"
+       hx-get="/@Routes.Prefix/traces"
+       hx-target="#content"
+       hx-push-url="true"
+       class="uppercase tracking-widest hover:text-indigo-500">Traces</a>
+    <span class="text-slate-300">/</span>
+    <span class="uppercase tracking-widest">@shortId</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-8 font-mono text-xl">@Model.TraceId</h2>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Duration</div>
+        <div class="text-lg font-semibold text-slate-900">@totalDuration.ToString("0.#") ms</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Spans</div>
+        <div class="text-lg font-semibold text-slate-900">@spans.Count</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Status</div>
+        <div class="text-lg font-semibold @(hasErrors ? "text-red-600" : "text-emerald-600")">
+            @(hasErrors ? "Error" : "OK")
+        </div>
+    </div>
+</div>
+
+<!-- Span Tree -->
+<h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest mb-3">Span Tree</h3>
+<div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+    @if (rootSpans.Count == 0 && spans.Count > 0)
+    {
+        @* Fallback: no root spans found, show all spans flat *@
+        @foreach (var span in spans.OrderBy(s => s.StartTime))
+        {
+            @await Html.PartialAsync("_SpanTree", (span, childMap, totalDuration, 0))
+        }
+    }
+    else
+    {
+        @foreach (var span in rootSpans.OrderBy(s => s.StartTime))
+        {
+            @await Html.PartialAsync("_SpanTree", (span, childMap, totalDuration, 0))
+        }
+    }
+</div>
+
+<!-- Error Details -->
+@{
+    var errorSpans = spans.Where(s => !string.IsNullOrEmpty(s.ErrorMessage)).ToList();
+}
+@if (errorSpans.Count > 0)
+{
+    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest mt-8 mb-3">Errors</h3>
+    @foreach (var span in errorSpans)
+    {
+        <div class="bg-white border border-red-200 rounded-sm p-4 mb-2">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-[18px] text-red-500">error</span>
+                <span class="font-mono text-sm font-medium text-red-600">@span.ErrorType</span>
+                <span class="text-xs text-slate-400">in @span.Name</span>
+            </div>
+            <div class="text-sm text-slate-700">@span.ErrorMessage</div>
+        </div>
+    }
+}

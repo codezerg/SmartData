@@ -1,0 +1,63 @@
+@model QueryResultViewModel
+@if (Model.Error != null)
+{
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm text-sm flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-2">warning</span>
+        @Model.Error
+    </div>
+}
+else
+{
+    @if (Model.Filter != null)
+    {
+        <div class="text-slate-500 text-sm mb-3">
+            <span class="font-semibold">Filter: </span>
+            <code class="mono text-xs">@Model.Filter</code>
+        </div>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="text-slate-400 p-4 text-sm flex items-center">
+            <span class="material-symbols-outlined mr-2 text-slate-300">inbox</span>
+            No results found.
+        </div>
+    }
+    else
+    {
+        <div class="text-slate-400 text-sm mb-3">@Model.Rows.Count row(s) returned</div>
+        <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+            <table class="w-full text-sm mono">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        @foreach (var col in Model.Columns)
+                        {
+                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">@col</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            @foreach (var col in Model.Columns)
+                            {
+                                var val = row[col];
+                                if (val == null)
+                                {
+                                    <td class="px-3 py-1.5 null-val text-xs">NULL</td>
+                                }
+                                else
+                                {
+                                    var str = val.ToString() ?? "";
+                                    if (str.Length > 100) { str = str[..100] + "..."; }
+                                    <td class="px-3 py-1.5 text-xs">@str</td>
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

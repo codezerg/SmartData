@@ -1,0 +1,80 @@
+@model SchemaViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_Tabs", (Model.Db, Model.Table, "schema"))
+
+<!-- Columns -->
+<div>
+    <h3 class="text-sm font-bold text-on-surface mb-3 flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-2">view_column</span>
+        Columns
+    </h3>
+    <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto mb-6">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200">
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Name</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Nullable</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Key</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var col in Model.Columns)
+                {
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-3 py-2 font-semibold text-sm">@col.Name</td>
+                        <td class="px-3 py-2 mono text-sm text-slate-600">@col.Type</td>
+                        <td class="px-3 py-2 text-sm">
+                            @if (col.Nullable)
+                            {
+                                <span class="text-slate-400">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-on-surface">No</span>
+                            }
+                        </td>
+                        <td class="px-3 py-2">
+                            @if (col.PrimaryKey)
+                            {
+                                <span class="inline-flex items-center bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                                    <span class="material-symbols-outlined text-[14px] mr-1">key</span>PK
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Indexes -->
+@if (Model.Indexes.Count > 0)
+{
+    <div>
+        <h3 class="text-sm font-bold text-on-surface mb-3 flex items-center">
+            <span class="material-symbols-outlined text-[18px] mr-2">bolt</span>
+            Indexes
+        </h3>
+        <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Name</th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Definition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var idx in Model.Indexes)
+                    {
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="px-3 py-2 font-semibold text-sm">@idx.Name</td>
+                            <td class="px-3 py-2 mono text-xs text-slate-600">@(idx.Sql ?? "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

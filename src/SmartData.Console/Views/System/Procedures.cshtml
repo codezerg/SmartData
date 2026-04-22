@@ -1,0 +1,104 @@
+@model ProceduresViewModel
+@{
+    var active = Model.ActiveTab;
+    var tabs = new[] {
+        ("all", "list", $"All ({Model.SystemCount + Model.UserCount})"),
+        ("system", "settings", $"System ({Model.SystemCount})"),
+        ("user", "code", $"User ({Model.UserCount})")
+    };
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">code</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-6">Procedures</h2>
+
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total</div>
+        <div class="text-lg font-semibold text-slate-900">@(Model.SystemCount + Model.UserCount)</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">System</div>
+        <div class="text-lg font-semibold text-slate-900">@Model.SystemCount</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">User</div>
+        <div class="text-lg font-semibold text-slate-900">@Model.UserCount</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label) in tabs)
+    {
+        var isActive = active == tab;
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="/@Routes.Prefix/procedures?tab=@tab"
+           hx-target="#content"
+           hx-push-url="true">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>
+
+<!-- Table -->
+@if (Model.Procedures.Count == 0)
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">code</span>
+        <div class="font-semibold text-slate-600 mb-1">No Procedures</div>
+        <div class="text-sm text-slate-400">No procedures found in this category.</div>
+    </div>
+}
+else
+{
+    <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 bg-slate-50">
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Name</th>
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Parameters</th>
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Returns</th>
+                    <th class="text-center px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-24">Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var proc in Model.Procedures)
+                {
+                    var categoryBadge = proc.Category == "system"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "bg-emerald-50 text-emerald-700";
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-2.5 font-mono text-sm font-medium text-slate-900">@proc.Name</td>
+                        <td class="px-4 py-2.5">
+                            @if (proc.Parameters.Count == 0)
+                            {
+                                <span class="text-slate-400 text-xs">none</span>
+                            }
+                            else
+                            {
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach (var p in proc.Parameters)
+                                    {
+                                        <span class="inline-flex items-center bg-slate-100 text-slate-600 text-xs font-mono px-2 py-0.5 rounded-sm"
+                                              title="@p.Type@(p.IsOptional ? " (optional)" : "")">
+                                            @p.Name<span class="text-slate-400 ml-1">@p.Type</span>
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td class="px-4 py-2.5 font-mono text-xs text-slate-500">@(string.IsNullOrEmpty(proc.ReturnType) ? "—" : proc.ReturnType)</td>
+                        <td class="px-4 py-2.5 text-center">
+                            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-sm @categoryBadge">@proc.Category</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,0 +1,45 @@
+@model LogsViewModel
+
+@if (Model.Logs.Count == 0)
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">receipt_long</span>
+        <div class="font-semibold text-slate-600 mb-1">No Logs</div>
+        <div class="text-sm text-slate-400">No log entries match the current filters.</div>
+    </div>
+}
+else
+{
+    <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 bg-slate-50">
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-24">Type</th>
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-48">Procedure</th>
+                    <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Message</th>
+                    <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-44">Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model.Logs)
+                {
+                    var badgeClass = log.Type switch
+                    {
+                        "error" => "bg-red-50 text-red-700",
+                        "warning" => "bg-amber-50 text-amber-700",
+                        "info" => "bg-indigo-50 text-indigo-700",
+                        _ => "bg-slate-50 text-slate-700"
+                    };
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-2.5">
+                            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-sm @badgeClass">@log.Type</span>
+                        </td>
+                        <td class="px-4 py-2.5 font-mono text-sm text-slate-600">@log.ProcedureName</td>
+                        <td class="px-4 py-2.5 text-slate-700">@log.Message</td>
+                        <td class="px-4 py-2.5 text-right text-slate-500 text-sm">@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

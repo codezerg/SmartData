@@ -1,0 +1,8 @@
+@model (string Db, string Table)
+<nav class="flex items-center gap-1.5 text-sm mb-4">
+    <a href="/@Routes.Prefix/db/@Model.Db" class="text-indigo-600 hover:text-indigo-800 font-medium">@Model.Db</a>
+    <span class="text-slate-400 material-symbols-outlined text-[16px]">chevron_right</span>
+    <a href="/@Routes.Prefix/db/@Model.Db/tables" class="text-indigo-600 hover:text-indigo-800 font-medium">Tables</a>
+    <span class="text-slate-400 material-symbols-outlined text-[16px]">chevron_right</span>
+    <span class="text-slate-600 font-medium">@Model.Table</span>
+</nav>

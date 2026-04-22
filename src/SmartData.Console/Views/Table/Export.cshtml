@@ -1,0 +1,13 @@
+@model ExportViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_Tabs", (Model.Db, Model.Table, "export"))
+
+<p class="text-slate-500 text-sm mb-4">
+    Export all rows from <strong>@Model.Table</strong> as a JSON file.
+</p>
+
+<a href="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/export/download" download
+   class="bg-indigo-600 text-white px-5 py-2 text-sm font-bold rounded-sm shadow-sm inline-flex items-center gap-1 hover:bg-indigo-700 transition-all no-underline">
+    <span class="material-symbols-outlined text-[18px] mr-2">download</span>
+    Download @(Model.Table).json
+</a>

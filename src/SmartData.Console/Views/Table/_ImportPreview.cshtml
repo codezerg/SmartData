@@ -1,0 +1,83 @@
+@model ImportPreviewViewModel
+
+<!-- Preview summary -->
+<div class="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded-sm text-sm flex items-center mb-4">
+    <span class="material-symbols-outlined text-[18px] mr-2">check_circle</span>
+    File contains @Model.RowCount row(s) with @Model.FileColumns.Count column(s).
+</div>
+
+<!-- Column mapping -->
+<div class="mb-4">
+    <label class="block text-sm font-semibold text-on-surface mb-2">Column Mapping</label>
+    <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200">
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">File Column</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Table Column</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var col in Model.FileColumns)
+                {
+                    var exists = Model.TableColumnNames.Contains(col);
+                    <tr class="border-b border-slate-100">
+                        <td class="px-3 py-2 mono text-sm">@col</td>
+                        <td class="px-3 py-2 mono text-sm @(!exists ? "text-slate-400" : "")">@(exists ? col : "\u2014")</td>
+                        <td class="px-3 py-2">
+                            @if (exists)
+                            {
+                                <span class="text-green-600 text-xs font-semibold flex items-center">
+                                    <span class="material-symbols-outlined text-[14px] mr-1">check_circle</span>Match
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-amber-600 text-xs font-semibold flex items-center">
+                                    <span class="material-symbols-outlined text-[14px] mr-1">error</span>New column
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Import options + execute form -->
+<form hx-post="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/import/run"
+      hx-target="#import-results"
+      hx-swap="innerHTML"
+      class="mb-4">
+    <textarea name="data" style="display:none;">@Model.Json</textarea>
+
+    <div class="mb-4" style="max-width: 400px;">
+        <label class="block text-sm font-semibold text-on-surface mb-1">On Duplicate</label>
+        <select name="mode"
+                class="bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:outline-none w-full">
+            <option value="insert">Abort &mdash; fail on duplicate key</option>
+            <option value="skip">Skip &mdash; ignore duplicate rows</option>
+            <option value="replace">Replace &mdash; update existing rows</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <div class="flex items-center">
+            <input type="checkbox" name="truncate" value="true" id="import-truncate"
+                   class="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <label for="import-truncate" class="text-sm text-slate-600 ml-2">
+                Truncate table before import (delete all existing rows)
+            </label>
+        </div>
+    </div>
+
+    <button type="submit"
+            class="bg-gradient-to-br from-primary to-primary-container text-white px-5 py-2 text-sm font-bold rounded-sm shadow-sm flex items-center gap-1 hover:opacity-90 transition-all">
+        <span class="material-symbols-outlined text-[18px] mr-1">upload</span>
+        Import @Model.RowCount row(s)
+    </button>
+</form>
+
+<div id="import-results"></div>

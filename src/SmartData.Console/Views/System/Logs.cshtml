@@ -1,0 +1,51 @@
+@model LogsViewModel
+@{
+    var filterType = Model.FilterType;
+    var filterProcedure = Model.FilterProcedure;
+    var search = Model.Search;
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">receipt_long</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-6">Logs</h2>
+
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-3 mb-6">
+    <select hx-get="/@Routes.Prefix/logs"
+            hx-target="#content"
+            hx-push-url="true"
+            hx-include="[name='procedure'],[name='search']"
+            name="type"
+            class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36">
+        <option value="" selected="@(string.IsNullOrEmpty(filterType))">All types</option>
+        <option value="info" selected="@(filterType == "info")">Info</option>
+        <option value="warning" selected="@(filterType == "warning")">Warning</option>
+        <option value="error" selected="@(filterType == "error")">Error</option>
+    </select>
+    <input type="text"
+           name="procedure"
+           value="@filterProcedure"
+           placeholder="Filter by procedure..."
+           hx-get="/@Routes.Prefix/logs"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='type'],[name='search']"
+           class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-52">
+    <input type="text"
+           name="search"
+           value="@search"
+           placeholder="Search messages..."
+           hx-get="/@Routes.Prefix/logs"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='type'],[name='procedure']"
+           class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64">
+    <span class="text-xs text-slate-400">@Model.Logs.Count entries</span>
+</div>
+
+<!-- Table -->
+@await Html.PartialAsync("_LogsTable", Model)

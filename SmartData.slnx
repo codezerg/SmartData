@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="src/SmartData.Cli/SmartData.Cli.csproj" />
+  <Project Path="src/SmartData.Client/SmartData.Client.csproj" />
+  <Project Path="src/SmartData.Console/SmartData.Console.csproj" />
+  <Project Path="src/SmartData.Contracts/SmartData.Contracts.csproj" />
+  <Project Path="src/SmartData.Core/SmartData.Core.csproj" />
+  <Project Path="src/SmartData.Server/SmartData.Server.csproj" />
+  <Project Path="src/SmartData.Server.Sqlite/SmartData.Server.Sqlite.csproj" />
+  <Project Path="src/SmartData.Server.SqlServer/SmartData.Server.SqlServer.csproj" />
+</Solution>

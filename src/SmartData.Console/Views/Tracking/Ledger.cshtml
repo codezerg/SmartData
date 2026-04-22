@@ -1,0 +1,53 @@
+@model LedgerListViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_TrackingTabs", (TrackingPageViewModel)Model)
+
+<div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-bold text-on-surface">
+        <span class="material-symbols-outlined text-[18px] mr-1 align-text-bottom">link</span>
+        @Model.Table — Ledger (@Model.Total rows)
+    </h3>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="border border-outline-variant/20 p-4 text-sm text-slate-500">No ledger rows.</div>
+}
+else
+{
+    <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 bg-slate-50">
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">LedgerId</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">HistoryId</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Kind</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">PrevHash</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">RowHash</th>
+                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">CanonicalBytes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    var badgeClass = row.Kind == "Synthetic"
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-emerald-100 text-emerald-800";
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="px-3 py-2 mono text-sm">@row.LedgerId</td>
+                        <td class="px-3 py-2 mono text-sm text-slate-500">@(row.HistoryId?.ToString() ?? "—")</td>
+                        <td class="px-3 py-2 text-sm">
+                            <span class="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full @badgeClass">@row.Kind</span>
+                        </td>
+                        <td class="px-3 py-2 mono text-xs text-slate-600">@row.PrevHashHex…</td>
+                        <td class="px-3 py-2 mono text-xs text-slate-600">@row.RowHashHex…</td>
+                        <td class="px-3 py-2 mono text-xs text-slate-500 text-right">@row.CanonicalBytesLength B</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <p class="text-xs text-slate-400 mt-3">
+        Synthetic rows carry schema (<code>'S'</code>) or prune (<code>'P'</code>) markers — decode per-row on the detail view (future enhancement).
+    </p>
+}

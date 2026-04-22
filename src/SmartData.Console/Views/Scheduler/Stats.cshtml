@@ -1,0 +1,66 @@
+@model SchedulerStatsViewModel
+@{
+    var s = Model.Stats;
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <a href="/@Routes.Prefix/schedulers"
+       hx-get="/@Routes.Prefix/schedulers"
+       hx-target="#content"
+       hx-push-url="true"
+       class="flex items-center gap-1 hover:text-primary">
+        <span class="material-symbols-outlined text-[14px]">arrow_back</span>
+        <span class="uppercase tracking-widest">Schedulers</span>
+    </a>
+</div>
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Stats</h2>
+    <div class="text-xs text-slate-400">window: last 24h</div>
+</div>
+
+<div class="grid grid-cols-4 gap-4 mb-6">
+    @foreach (var (label, value, color) in new[]
+    {
+        ("Schedules",        s.SchedulesTotal.ToString(),         "text-slate-600"),
+        ("Enabled",          s.SchedulesEnabled.ToString(),       "text-emerald-600"),
+        ("Currently running", s.CurrentlyRunning.ToString(),      "text-blue-600"),
+        ("Pending retries",  s.PendingRetries.ToString(),         "text-amber-600"),
+        ("Succeeded (24h)",  s.Last24hSucceeded.ToString(),       "text-emerald-600"),
+        ("Failed (24h)",     s.Last24hFailed.ToString(),          "text-red-600"),
+        ("Cancelled (24h)",  s.Last24hCancelled.ToString(),       "text-amber-600"),
+        ("Procedures active", s.PerProcedure.Count.ToString(),    "text-slate-600"),
+    })
+    {
+        <div class="bg-white border border-outline-variant/20 p-4 rounded-sm">
+            <div class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-1">@label</div>
+            <div class="@color text-3xl font-extrabold">@value</div>
+        </div>
+    }
+</div>
+
+<div class="bg-white border border-outline-variant/20 rounded-sm overflow-hidden">
+    <div class="px-4 py-2 border-b border-slate-100 text-xs uppercase tracking-widest font-bold text-slate-400">Per-procedure avg duration</div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-slate-200">
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Procedure</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Runs (24h)</th>
+                <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Avg duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (s.PerProcedure.Count == 0)
+            {
+                <tr><td colspan="3" class="px-3 py-6 text-center text-slate-400 text-sm">No successful runs yet.</td></tr>
+            }
+            @foreach (var p in s.PerProcedure.OrderByDescending(x => x.Runs))
+            {
+                <tr class="border-b border-slate-100">
+                    <td class="px-3 py-2 mono text-xs text-slate-600">@p.ProcedureName</td>
+                    <td class="px-3 py-2 text-xs">@p.Runs</td>
+                    <td class="px-3 py-2 mono text-xs text-slate-500">@p.AvgDurationMs.ToString("0.#") ms</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

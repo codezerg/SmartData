@@ -1,0 +1,9 @@
+@model (string Href, string CurrentPath, string Icon, string Label)
+@{
+    var isActive = Model.CurrentPath.StartsWith(Model.Href, StringComparison.OrdinalIgnoreCase);
+}
+<a href="@Model.Href"
+   class="@(isActive ? "flex items-center gap-3 px-3 py-2.5 bg-white text-indigo-600 font-bold shadow-sm rounded-sm transition-all duration-200" : "flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:text-indigo-500 transition-all duration-200")">
+    <span class="material-symbols-outlined">@Model.Icon</span>
+    <span class="text-sm">@Model.Label</span>
+</a>

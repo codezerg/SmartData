@@ -1,0 +1,50 @@
+@model HistoryListViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_TrackingTabs", (TrackingPageViewModel)Model)
+
+<div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-bold text-on-surface">
+        <span class="material-symbols-outlined text-[18px] mr-1 align-text-bottom">history</span>
+        @Model.Table — History (@Model.Total rows, showing @Model.Rows.Count from offset @Model.Offset)
+    </h3>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="border border-outline-variant/20 p-4 text-sm text-slate-500">No history rows.</div>
+}
+else
+{
+    <div class="bg-surface-container-lowest border border-outline-variant/20 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 bg-slate-50">
+                    @foreach (var col in Model.Columns)
+                    {
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">@col</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        @foreach (var col in Model.Columns)
+                        {
+                            var val = row.TryGetValue(col, out var v) ? v : null;
+                            var display = val switch
+                            {
+                                null => "—",
+                                byte[] b => $"0x{Convert.ToHexString(b, 0, Math.Min(4, b.Length))}… ({b.Length}B)",
+                                DateTime dt => dt.ToString("u"),
+                                _ => val.ToString() ?? "—"
+                            };
+                            var cls = col == "Operation" ? "mono font-semibold" : "mono text-slate-700";
+                            <td class="px-3 py-2 @cls text-sm">@display</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

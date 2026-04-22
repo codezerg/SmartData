@@ -1,0 +1,93 @@
+@model (string CurrentPath, string? CurrentDb, List<SmartData.Contracts.DatabaseListItem> Databases, string? Username)
+@{
+    var currentPath = Model.CurrentPath;
+    var currentDb = Model.CurrentDb;
+    var databases = Model.Databases;
+    var username = Model.Username;
+    var p = Routes.Prefix;
+
+    string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):0.#} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):0.#} GB";
+    }
+}
+<aside class="fixed left-0 top-0 h-full w-64 border-r border-slate-200 bg-slate-100 flex flex-col py-4 px-3 z-50">
+    <!-- Brand -->
+    <div class="mb-8 px-3">
+        <a href="/@p" class="flex items-center gap-3 no-underline">
+            <div class="w-8 h-8 bg-indigo-600 rounded-sm flex items-center justify-center text-white">
+                <span class="material-symbols-outlined text-sm">database</span>
+            </div>
+            <div>
+                <div class="text-indigo-600 font-black text-sm tracking-wide">SmartData</div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Console</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 space-y-1 overflow-y-auto">
+        <!-- Databases -->
+        @if (databases.Count > 0)
+        {
+            <div>
+                <div class="px-3 py-2 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Databases</div>
+                <div class="sidebar-links space-y-0.5">
+                    @foreach (var db in databases)
+                    {
+                        var href = $"/{p}/db/{db.Name}";
+                        var isActive = currentPath.StartsWith(href, StringComparison.OrdinalIgnoreCase);
+                        <a href="@href"
+                           class="@(isActive ? "flex items-center gap-3 px-3 py-2 bg-white text-indigo-600 font-bold shadow-sm rounded-sm transition-all duration-200 text-sm" : "flex items-center gap-3 px-3 py-2 text-slate-600 hover:text-indigo-500 transition-all duration-200 text-sm")">
+                            <span class="material-symbols-outlined text-[18px]">database</span>
+                            <span class="text-sm truncate flex-1">@db.Name</span>
+                            <span class="text-[11px] text-slate-400 font-mono">@FormatSize(db.Size)</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- System -->
+        <div>
+            <div class="px-3 py-2 text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-4">System</div>
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/users", currentPath, "group", "Users")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/backups", currentPath, "backup", "Backups")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/logs", currentPath, "receipt_long", "Logs")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/metrics", currentPath, "monitoring", "Metrics")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/traces", currentPath, "timeline", "Traces")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/exceptions", currentPath, "bug_report", "Exceptions")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/storage", currentPath, "hard_drive", "Storage")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/procedures", currentPath, "code", "Procedures")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/schedulers", currentPath, "schedule", "Schedulers")); }
+            @{ await Html.RenderPartialAsync("_SidebarLink", ($"/{p}/settings", currentPath, "tune", "Settings")); }
+        </div>
+    </nav>
+
+    <!-- Footer -->
+    <div class="mt-auto border-t border-slate-200 pt-4 px-3">
+        @if (username != null)
+        {
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-[18px] text-slate-400">person</span>
+                    <span class="text-sm text-slate-600 font-medium truncate">@username</span>
+                </div>
+                <form method="post" action="/@p/logout">
+                    <button type="submit" class="text-slate-400 hover:text-slate-600 transition-colors" title="Sign out">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                    </button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-400 font-mono">SmartData</span>
+            </div>
+        }
+    </div>
+</aside>

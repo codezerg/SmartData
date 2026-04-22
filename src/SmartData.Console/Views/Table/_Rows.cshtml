@@ -1,0 +1,32 @@
+@model DataGridViewModel
+@{
+    var hasMore = Model.Rows.Count == Model.Limit;
+    var orderParam = Model.OrderBy != null ? $"&orderBy={Model.OrderBy}" : "";
+    var searchParam = !string.IsNullOrEmpty(Model.Search) ? $"&search={Uri.EscapeDataString(Model.Search)}" : "";
+    var nextOffset = Model.Offset + Model.Limit;
+}
+@for (var i = 0; i < Model.Rows.Count; i++)
+{
+    var row = Model.Rows[i];
+    var isLast = hasMore && i == Model.Rows.Count - 1;
+    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+        @if (isLast)
+        {
+            <text>hx-get="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/rows?limit=@Model.Limit&offset=@(nextOffset)@(orderParam)@(searchParam)" hx-trigger="intersect once" hx-swap="afterend"</text>
+        }>
+        @foreach (var col in Model.Columns)
+        {
+            var val = row[col];
+            if (val == null)
+            {
+                <td class="px-3 py-1.5 null-val text-xs">NULL</td>
+            }
+            else
+            {
+                var str = val.ToString() ?? "";
+                if (str.Length > 100) { str = str[..100] + "..."; }
+                <td class="px-3 py-1.5 text-xs">@str</td>
+            }
+        }
+    </tr>
+}

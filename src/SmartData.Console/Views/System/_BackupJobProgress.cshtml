@@ -1,0 +1,95 @@
+@model SmartData.Contracts.BackupJobStatus
+@{
+    var isRunning = Model.Status is "pending" or "running";
+    var isCompleted = Model.Status == "completed";
+    var isFailed = Model.Status == "failed";
+    var isCancelled = Model.Status == "cancelled";
+    var pct = (int)(Model.Progress * 100);
+
+    string OperationLabel(string op) => op switch
+    {
+        "create" => "Creating backup",
+        "restore" => "Restoring backup",
+        _ => "Processing"
+    };
+
+    string FormatSize(long? bytes)
+    {
+        if (bytes == null || bytes == 0) return "";
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.#} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):0.#} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):0.#} GB";
+    }
+
+    string FormatDuration(long ms) => ms < 1000 ? $"{ms}ms" : $"{ms / 1000.0:F1}s";
+}
+
+@if (isRunning)
+{
+    <div id="backup-job-progress"
+         hx-get="/@Routes.Prefix/backups/jobs/@Model.JobId"
+         hx-trigger="every 1s"
+         hx-swap="outerHTML"
+         class="mb-4">
+        <div class="bg-white border border-indigo-200 rounded-sm p-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-indigo-600 animate-pulse">sync</span>
+                    <span class="text-sm font-semibold text-slate-700">@OperationLabel(Model.Operation)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono text-slate-500">@FormatDuration(Model.ElapsedMs)</span>
+                    <button hx-post="/@Routes.Prefix/backups/jobs/@Model.JobId/cancel"
+                            hx-target="#backup-job-progress"
+                            hx-swap="outerHTML"
+                            class="text-xs text-red-500 hover:text-red-700 font-semibold">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2 mb-2">
+                <div class="bg-indigo-600 h-2 rounded-full transition-all duration-500" style="width: @(pct)%"></div>
+            </div>
+            <div class="text-xs text-slate-500">
+                @if (!string.IsNullOrEmpty(Model.ProgressMessage))
+                {
+                    @Model.ProgressMessage
+                    <span class="ml-2 font-mono">@(pct)%</span>
+                }
+                else
+                {
+                    <span>Starting...</span>
+                }
+            </div>
+        </div>
+    </div>
+}
+else if (isCompleted)
+{
+    var sizeInfo = FormatSize(Model.Size);
+    var details = $"{Model.Operation} completed — {Model.Databases.Count} database(s)";
+    if (!string.IsNullOrEmpty(sizeInfo)) details += $", {sizeInfo}";
+    details += $", {FormatDuration(Model.ElapsedMs)}";
+
+    <div id="backup-job-progress" class="mb-4"
+         hx-get="/@Routes.Prefix/backups"
+         hx-trigger="load"
+         hx-target="#backups-table"
+         hx-select="#backups-table"
+         hx-swap="outerHTML">
+        @await Html.PartialAsync("_Alert", ("success", "check_circle", details))
+    </div>
+}
+else if (isFailed)
+{
+    <div id="backup-job-progress" class="mb-4">
+        @await Html.PartialAsync("_Alert", ("error", "error", Model.Error ?? "Backup operation failed."))
+    </div>
+}
+else if (isCancelled)
+{
+    <div id="backup-job-progress" class="mb-4">
+        @await Html.PartialAsync("_Alert", ("warning", "cancel", "Operation was cancelled."))
+    </div>
+}

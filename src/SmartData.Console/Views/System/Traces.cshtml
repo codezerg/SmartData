@@ -1,0 +1,216 @@
+@model TracesViewModel
+@{
+    var active = Model.ActiveTab;
+    var stats = Model.ProcedureStats;
+    var traces = Model.Traces.Traces;
+    var totalCalls = stats.Sum(s => s.CallCount);
+    var totalErrors = stats.Sum(s => s.ErrorCount);
+    var overallErrorRate = totalCalls > 0 ? (double)totalErrors / totalCalls * 100 : 0;
+
+    var tabs = new[] {
+        ("overview", "analytics", "Overview"),
+        ("recent", "list", $"Recent ({traces.Count})")
+    };
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">timeline</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-6">Traces</h2>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Procedures</div>
+        <div class="text-lg font-semibold text-slate-900">@stats.Count</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Calls</div>
+        <div class="text-lg font-semibold text-slate-900">@totalCalls</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Errors</div>
+        <div class="text-lg font-semibold @(totalErrors > 0 ? "text-red-600" : "text-emerald-600")">@totalErrors</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Error Rate</div>
+        <div class="text-lg font-semibold @(overallErrorRate > 5 ? "text-red-600" : overallErrorRate > 1 ? "text-amber-600" : "text-emerald-600")">@overallErrorRate.ToString("0.##")%</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label) in tabs)
+    {
+        var isActive = active == tab;
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="/@Routes.Prefix/traces?tab=@tab"
+           hx-target="#content"
+           hx-push-url="true">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>
+
+@if (active == "overview")
+{
+    <!-- Per-Procedure Performance Table -->
+    @if (stats.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">timeline</span>
+            <div class="font-semibold text-slate-600 mb-1">No Traces</div>
+            <div class="text-sm text-slate-400">No traced procedure calls yet. Traces are collected automatically for each RPC request.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Procedure</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Calls</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Errors</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Avg</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">P95</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Max</th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-36">Latency</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-44">Last Seen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var globalMax = stats.Count > 0 ? stats.Max(s => s.MaxDurationMs) : 1;
+                    }
+                    @foreach (var proc in stats)
+                    {
+                        var errorRate = proc.CallCount > 0 ? (double)proc.ErrorCount / proc.CallCount * 100 : 0;
+                        var barWidth = globalMax > 0 ? proc.P95DurationMs / globalMax * 100 : 0;
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                            hx-get="/@Routes.Prefix/traces?tab=recent&procedure=@proc.Procedure"
+                            hx-target="#content"
+                            hx-push-url="true">
+                            <td class="px-4 py-2.5">
+                                <span class="font-mono text-sm font-medium text-slate-900">@proc.Procedure</span>
+                            </td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@proc.CallCount</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm @(proc.ErrorCount > 0 ? "text-red-600 font-medium" : "text-slate-400")">
+                                @if (proc.ErrorCount > 0)
+                                {
+                                    @proc.ErrorCount <span class="text-xs text-slate-400 font-normal">(@errorRate.ToString("0.#")%)</span>
+                                }
+                                else
+                                {
+                                    <span>0</span>
+                                }
+                            </td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@proc.AvgDurationMs.ToString("0.#") <span class="text-slate-400">ms</span></td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-700">@proc.P95DurationMs.ToString("0.#") <span class="text-slate-400">ms</span></td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-500">@proc.MaxDurationMs.ToString("0.#") <span class="text-slate-400">ms</span></td>
+                            <td class="px-4 py-2.5">
+                                <div class="w-full bg-slate-100 rounded-sm h-2">
+                                    <div class="@(proc.ErrorCount > 0 ? "bg-red-400" : "bg-indigo-400") h-2 rounded-sm" style="width: @barWidth.ToString("0.#")%"></div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5 text-right text-slate-500 text-sm">@proc.LastSeen.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else if (active == "recent")
+{
+    <!-- Filters (only on recent tab) -->
+    <div class="flex flex-wrap items-center gap-3 mb-6">
+        <input type="text"
+               name="procedure"
+               value="@Model.FilterProcedure"
+               placeholder="Filter by procedure..."
+               hx-get="/@Routes.Prefix/traces?tab=recent"
+               hx-target="#content"
+               hx-push-url="true"
+               hx-trigger="input changed delay:300ms"
+               hx-include="[name='errorsOnly'],[name='minDuration']"
+               class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-52">
+        <input type="number"
+               name="minDuration"
+               value="@Model.MinDurationMs"
+               placeholder="Min duration (ms)..."
+               step="1"
+               hx-get="/@Routes.Prefix/traces?tab=recent"
+               hx-target="#content"
+               hx-push-url="true"
+               hx-trigger="input changed delay:300ms"
+               hx-include="[name='procedure'],[name='errorsOnly']"
+               class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-44">
+        <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer border border-slate-200 rounded-sm px-3 py-2 hover:bg-slate-50">
+            <input type="checkbox"
+                   name="errorsOnly"
+                   value="true"
+                   checked="@Model.ErrorsOnly"
+                   hx-get="/@Routes.Prefix/traces?tab=recent"
+                   hx-target="#content"
+                   hx-push-url="true"
+                   hx-include="[name='procedure'],[name='minDuration']"
+                   class="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            <span>Errors only</span>
+        </label>
+    </div>
+
+    @if (traces.Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-4xl text-slate-300 mb-3">timeline</span>
+            <div class="font-semibold text-slate-600 mb-1">No Traces</div>
+            <div class="text-sm text-slate-400">No traces match the current filters.</div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="text-center px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-12"></th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Procedure</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Duration</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Spans</th>
+                        <th class="text-left px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Trace ID</th>
+                        <th class="text-right px-4 py-2.5 text-[11px] text-slate-500 uppercase tracking-widest font-bold w-44">Started</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trace in traces)
+                    {
+                        var shortId = trace.TraceId.Length > 12 ? trace.TraceId[..12] + "..." : trace.TraceId;
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                            hx-get="/@Routes.Prefix/traces/@trace.TraceId"
+                            hx-target="#content"
+                            hx-push-url="true">
+                            <td class="px-4 py-2.5 text-center">
+                                @if (trace.HasErrors)
+                                {
+                                    <span class="material-symbols-outlined text-[18px] text-red-500">cancel</span>
+                                }
+                                else
+                                {
+                                    <span class="material-symbols-outlined text-[18px] text-emerald-500">check_circle</span>
+                                }
+                            </td>
+                            <td class="px-4 py-2.5 font-mono text-sm font-medium text-slate-900">@trace.RootSpanName</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm @(trace.TotalDurationMs > 500 ? "text-amber-600 font-medium" : "text-slate-700")">@trace.TotalDurationMs.ToString("0.#") ms</td>
+                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-500">@trace.SpanCount</td>
+                            <td class="px-4 py-2.5 font-mono text-xs text-slate-400">@shortId</td>
+                            <td class="px-4 py-2.5 text-right text-slate-500 text-sm">@trace.StartTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

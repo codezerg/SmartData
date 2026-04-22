@@ -1,0 +1,45 @@
+@model DataGridViewModel
+@{
+    var searchParam = !string.IsNullOrEmpty(Model.Search) ? $"&search={Uri.EscapeDataString(Model.Search)}" : "";
+}
+@if (Model.Rows.Count == 0 && Model.Offset == 0)
+{
+    <div id="data-grid">
+        <div class="text-slate-400 p-4 text-sm flex items-center">
+            <span class="material-symbols-outlined mr-2 text-slate-300">inbox</span>
+            @(string.IsNullOrEmpty(Model.Search) ? "No data in this table." : "No results found.")
+        </div>
+    </div>
+}
+else
+{
+    <div id="data-grid">
+        <div class="overflow-x-auto bg-surface-container-lowest border border-outline-variant/20">
+            <table class="w-full text-sm mono">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        @foreach (var col in Model.Columns)
+                        {
+                            var isSorted = Model.OrderBy != null && Model.OrderBy.StartsWith(col + ":", StringComparison.OrdinalIgnoreCase);
+                            var currentDir = isSorted && Model.OrderBy!.EndsWith(":desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+                            var nextDir = isSorted && currentDir == "asc" ? "desc" : "asc";
+                            var sortIcon = isSorted ? (currentDir == "asc" ? "arrow_upward" : "arrow_downward") : "swap_vert";
+                            <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider">
+                                <a href="#"
+                                   class="no-underline whitespace-nowrap text-slate-500 hover:text-indigo-600 transition-colors @(isSorted ? "font-bold text-indigo-600" : "")"
+                                   hx-get="/@Routes.Prefix/db/@Model.Db/tables/@Model.Table/grid?limit=@Model.Limit&offset=0&orderBy=@(col):@(nextDir)@(searchParam)"
+                                   hx-target="#data-grid">
+                                    @col
+                                    <span class="material-symbols-outlined text-[14px] align-middle @(isSorted ? "text-indigo-600" : "text-slate-300")">@sortIcon</span>
+                                </a>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    @await Html.PartialAsync("_Rows", Model)
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

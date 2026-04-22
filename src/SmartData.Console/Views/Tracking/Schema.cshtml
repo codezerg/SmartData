@@ -1,0 +1,91 @@
+@model SchemaHistoryViewModel
+@await Html.PartialAsync("_Breadcrumbs", (Model.Db, Model.Table))
+@await Html.PartialAsync("_TrackingTabs", (TrackingPageViewModel)Model)
+
+@{
+    var timeline = Model.Timeline;
+    var sourceBadge = timeline?.Source switch
+    {
+        "ledger" => ("bg-emerald-100 text-emerald-800", "Schema ledger"),
+        "sidecar" => ("bg-amber-100 text-amber-800", "Drift log"),
+        _ => ("bg-slate-100 text-slate-500", "Unknown"),
+    };
+}
+
+<h3 class="text-sm font-bold text-on-surface mb-3">
+    <span class="material-symbols-outlined text-[18px] mr-1 align-text-bottom">schema</span>
+    @Model.Table — Schema history
+</h3>
+
+@if (timeline is null || timeline.Entries.Count == 0)
+{
+    <div class="border border-outline-variant/20 p-4 text-sm text-slate-500">No schema history recorded.</div>
+}
+else
+{
+    <div class="mb-4">
+        <span class="inline-flex items-center text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full @sourceBadge.Item1">@sourceBadge.Item2</span>
+        @if (timeline.Source == "sidecar")
+        {
+            <span class="ml-3 text-xs text-slate-500">Mutable — not integrity-protected. Use <code>[Ledger]</code> for audit-grade drift history.</span>
+        }
+    </div>
+
+    <ol class="space-y-3">
+        @foreach (var e in timeline.Entries)
+        {
+            var hashPrefix = e.CapturedHash.Length >= 4
+                ? Convert.ToHexString(e.CapturedHash, 0, 4) + "…"
+                : "—";
+            <li class="bg-surface-container-lowest border border-outline-variant/20 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        @if (e.IsBaseline)
+                        {
+                            <span class="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">Baseline</span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Schema change</span>
+                        }
+                        <span class="text-sm text-slate-700">@e.DetectedAt.ToString("u") by <span class="font-mono">@e.DetectedBy</span></span>
+                    </div>
+                    <span class="text-xs mono text-slate-400">hash @hashPrefix</span>
+                </div>
+
+                @if (e.Added.Length > 0 || e.Removed.Length > 0)
+                {
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div>
+                            <div class="text-xs font-semibold uppercase text-emerald-600 mb-1">Added</div>
+                            <ul class="mono text-sm">
+                                @foreach (var a in e.Added) { <li>+ @a</li> }
+                                @if (e.Added.Length == 0) { <li class="text-slate-400">—</li> }
+                            </ul>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold uppercase text-rose-600 mb-1">Removed</div>
+                            <ul class="mono text-sm">
+                                @foreach (var r in e.Removed) { <li>− @r</li> }
+                                @if (e.Removed.Length == 0) { <li class="text-slate-400">—</li> }
+                            </ul>
+                        </div>
+                    </div>
+                }
+
+                <details class="text-xs text-slate-500">
+                    <summary class="cursor-pointer">@e.Columns.Length columns captured</summary>
+                    <table class="mt-2 w-full text-xs">
+                        <thead><tr class="text-left text-slate-400"><th class="pr-3">Name</th><th>ClrType</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in e.Columns)
+                            {
+                                <tr><td class="mono pr-3">@c.Name</td><td class="mono">@c.ClrType</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </details>
+            </li>
+        }
+    </ol>
+}

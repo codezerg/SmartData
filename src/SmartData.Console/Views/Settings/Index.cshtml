@@ -1,0 +1,113 @@
+@model SettingsViewModel
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">tune</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-6">Settings</h2>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-sm text-sm mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">error</span>
+        @Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-sm text-sm mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+        @Model.SuccessMessage
+    </div>
+}
+
+<div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2.5 rounded-sm text-sm mb-4 flex items-start gap-2">
+    <span class="material-symbols-outlined text-[18px] mt-0.5">info</span>
+    <span>Some settings (Schema Mode, Index, Metrics Enabled) are only applied during server startup. Changes to these are saved immediately but take effect after restart. All other settings apply instantly.</span>
+</div>
+
+<form hx-post="/@Routes.Prefix/settings"
+      hx-target="#content"
+      hx-swap="innerHTML">
+
+    @foreach (var group in Model.Groups)
+    {
+        <div class="bg-surface-container-lowest border border-outline-variant/20 p-5 mb-6">
+            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">@group.Section</h3>
+
+            <div class="space-y-4" style="max-width: 600px;">
+                @foreach (var item in group.Items)
+                {
+                    <div class="flex items-start gap-4">
+                        @if (item.PropertyType == typeof(bool))
+                        {
+                            <label class="flex items-center gap-2 cursor-pointer @(item.IsReadOnly ? "opacity-50" : "")">
+                                <input type="checkbox" name="@item.Key" value="True"
+                                       @(item.Value == "True" ? "checked" : "")
+                                       @(item.IsReadOnly ? "disabled" : "")
+                                       class="w-4 h-4 rounded-sm border-slate-300 text-primary focus:ring-primary" />
+                                <span class="text-sm font-semibold text-on-surface">@item.DisplayName</span>
+                                @if (item.IsReadOnly)
+                                {
+                                    <span class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
+                                }
+                            </label>
+                        }
+                        else
+                        {
+                            <div class="flex-1">
+                                <label class="block text-sm font-semibold text-on-surface mb-1">
+                                    @item.DisplayName
+                                    @if (item.IsReadOnly)
+                                    {
+                                        <span class="material-symbols-outlined text-[14px] text-slate-400 align-middle">lock</span>
+                                    }
+                                </label>
+                                @if (item.IsReadOnly)
+                                {
+                                    <div class="text-sm text-slate-500 font-mono bg-slate-50 border border-slate-200 rounded-sm py-1.5 px-3">
+                                        @(string.IsNullOrEmpty(item.Value) ? "(not set)" : item.Value)
+                                    </div>
+                                }
+                                else if (item.PropertyType.IsEnum)
+                                {
+                                    <select name="@item.Key"
+                                            class="w-full bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none">
+                                        @foreach (var val in Enum.GetNames(item.PropertyType))
+                                        {
+                                            <option value="@val" selected="@(val == item.Value)">@val</option>
+                                        }
+                                    </select>
+                                }
+                                else if (item.PropertyType == typeof(int) || item.PropertyType == typeof(int?) || item.PropertyType == typeof(double))
+                                {
+                                    <input type="number" name="@item.Key" value="@item.Value"
+                                           step="@(item.PropertyType == typeof(double) ? "0.01" : "1")"
+                                           class="w-full bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" />
+                                }
+                                else
+                                {
+                                    <input type="text" name="@item.Key" value="@item.Value"
+                                           class="w-full bg-white border border-slate-200 rounded-sm py-1.5 px-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" />
+                                }
+                            </div>
+                        }
+                        @if (item.ModifiedAt.HasValue)
+                        {
+                            <span class="text-[11px] text-slate-400 mt-1 whitespace-nowrap">@item.ModifiedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="flex items-center gap-3">
+        <button type="submit"
+                class="bg-gradient-to-br from-primary to-primary-container text-white px-5 py-2 text-sm font-bold rounded-sm shadow-sm flex items-center gap-1 hover:opacity-90 transition-all">
+            <span class="material-symbols-outlined text-[18px] mr-1">save</span>
+            Save Changes
+        </button>
+    </div>
+</form>

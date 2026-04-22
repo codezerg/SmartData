@@ -1,0 +1,116 @@
+@model ExceptionsViewModel
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">bug_report</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-6">Exceptions</h2>
+
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-3 mb-6">
+    <input type="text"
+           name="type"
+           value="@Model.FilterType"
+           placeholder="Filter by exception type..."
+           hx-get="/@Routes.Prefix/exceptions"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='procedure']"
+           class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64">
+    <input type="text"
+           name="procedure"
+           value="@Model.FilterProcedure"
+           placeholder="Filter by procedure..."
+           hx-get="/@Routes.Prefix/exceptions"
+           hx-target="#content"
+           hx-push-url="true"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='type']"
+           class="border border-slate-200 rounded-sm px-3 py-2 text-sm bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-52">
+    <span class="text-xs text-slate-400">@Model.Exceptions.Total exception(s)</span>
+</div>
+
+<!-- Table -->
+@if (Model.Exceptions.Items.Count == 0)
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-4xl text-emerald-300 mb-3">check_circle</span>
+        <div class="font-semibold text-slate-600 mb-1">No Exceptions</div>
+        <div class="text-sm text-slate-400">No exceptions match the current filters.</div>
+    </div>
+}
+else
+{
+    <div class="space-y-0">
+        @foreach (var ex in Model.Exceptions.Items)
+        {
+            var detailId = $"ex-{ex.Timestamp.Ticks}";
+            <div class="bg-white border border-slate-200 rounded-sm overflow-hidden mb-2">
+                <button onclick="toggleDetail('@detailId')"
+                        class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                    <span class="material-symbols-outlined text-[18px] text-red-400">error</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-sm font-medium text-red-600">@ex.ExceptionType</span>
+                            @if (!string.IsNullOrEmpty(ex.Procedure))
+                            {
+                                <span class="inline-flex items-center bg-slate-100 text-slate-600 text-xs font-mono px-2 py-0.5 rounded-sm">@ex.Procedure</span>
+                            }
+                            @if (!string.IsNullOrEmpty(ex.Database))
+                            {
+                                <span class="inline-flex items-center bg-indigo-50 text-indigo-700 text-xs font-medium px-2 py-0.5 rounded-sm">@ex.Database</span>
+                            }
+                        </div>
+                        <div class="text-sm text-slate-600 truncate mt-0.5">@ex.Message</div>
+                    </div>
+                    <span class="text-xs text-slate-400 whitespace-nowrap">@ex.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                    <span class="material-symbols-outlined text-[18px] text-slate-400 detail-chevron transition-transform" id="chevron-@detailId">expand_more</span>
+                </button>
+                <div id="@detailId" class="hidden border-t border-slate-200 px-4 py-4 bg-slate-50">
+                    <div class="mb-3">
+                        <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Message</div>
+                        <div class="text-sm text-slate-700">@ex.Message</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ex.StackTrace))
+                    {
+                        <div class="mb-3">
+                            <div class="text-[11px] text-slate-400 uppercase tracking-widest font-bold mb-1">Stack Trace</div>
+                            <pre class="text-xs text-slate-600 font-mono bg-white border border-slate-200 rounded-sm p-3 overflow-x-auto max-h-64 overflow-y-auto">@ex.StackTrace</pre>
+                        </div>
+                    }
+                    <div class="flex flex-wrap gap-4 text-xs text-slate-500">
+                        @if (!string.IsNullOrEmpty(ex.User))
+                        {
+                            <div><span class="font-bold">User:</span> @ex.User</div>
+                        }
+                        @if (!string.IsNullOrEmpty(ex.TraceId))
+                        {
+                            <div>
+                                <span class="font-bold">Trace:</span>
+                                <a href="/@Routes.Prefix/traces/@ex.TraceId"
+                                   hx-get="/@Routes.Prefix/traces/@ex.TraceId"
+                                   hx-target="#content"
+                                   hx-push-url="true"
+                                   class="text-indigo-600 hover:text-indigo-800 font-mono">@ex.TraceId[..Math.Min(12, ex.TraceId.Length)]...</a>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(ex.Properties))
+                        {
+                            <div><span class="font-bold">Properties:</span> <code class="font-mono">@ex.Properties</code></div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script>
+    function toggleDetail(id) {
+        var el = document.getElementById(id);
+        var chevron = document.getElementById('chevron-' + id);
+        el.classList.toggle('hidden');
+        chevron.style.transform = el.classList.contains('hidden') ? '' : 'rotate(180deg)';
+    }
+</script>

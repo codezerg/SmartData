@@ -1,0 +1,121 @@
+SmartData Documentation Plan
+============================
+
+Goal: MS-docs-style IA (pre-2019 MSDN era) — task-oriented, layered, heavily
+cross-linked. NOT a blind reference dump per project.
+
+
+Target Structure
+----------------
+
+docs/
+├── overview/              What SmartData is, when to use it, architecture at 30k ft
+│   ├── what-is-smartdata
+│   ├── architecture
+│   └── compared-to        (vs EF Core, vs Dapper, vs ServiceStack)
+│
+├── get-started/           Minimum path to a running app
+│   ├── install
+│   ├── your-first-procedure
+│   └── your-first-rpc-call
+│
+├── fundamentals/          Mental model — read once, refer back rarely
+│   ├── procedures         The stored-procedure pattern, lifecycle
+│   ├── entities           AutoRepo, attributes, auto-migration
+│   ├── database-context   IDatabaseContext, scoping, transactions
+│   ├── binary-rpc         Wire protocol, serialization, endpoint
+│   ├── providers          How provider interfaces plug together
+│   ├── scheduling         [Daily]/[Every] model, reconciler, SysSchedule
+│   └── tracking           Tracked/Ledger/NotTracked attributes, history
+│
+├── how-to/                Task recipes — "I need to X"
+│   ├── define-a-procedure
+│   ├── add-a-new-entity
+│   ├── return-dtos-not-entities
+│   ├── schedule-a-recurring-job
+│   ├── enable-change-tracking
+│   ├── query-entity-history
+│   ├── register-sql-server-provider
+│   ├── back-up-a-database
+│   ├── write-a-custom-provider
+│   ├── call-procedures-from-a-client
+│   └── use-the-admin-console
+│
+├── tutorials/             End-to-end, 20-30 min each
+│   ├── build-a-crud-app
+│   └── migrate-an-existing-schema
+│
+├── reference/             Exhaustive API surface — thin and scannable, not essays
+│   ├── smartdata-server
+│   ├── smartdata-server-sqlite
+│   ├── smartdata-server-sqlserver
+│   ├── smartdata-client
+│   ├── smartdata-core
+│   ├── smartdata-console
+│   ├── smartdata-cli
+│   └── system-procedures  (one page listing all sp_* with signatures)
+│
+└── samples/               Links/descriptions of runnable examples in /samples
+
+
+Design Principles
+-----------------
+
+1. Task-first, reference second.
+   Sidebar opens with overview/get-started/how-to. Reference is the last
+   section, not the first.
+
+2. Every how-to answers one question.
+   Titled "How to X". Scannable in 60 seconds. Code sample you can paste.
+
+3. Fundamentals explain the mental model once.
+   Other pages link to them instead of re-explaining concepts.
+
+4. Reference pages are thin.
+   Just the API surface — types, signatures, 1-line descriptions. Readers
+   arrive here knowing what they want; they don't read top-to-bottom.
+
+5. Cross-linking is heavy.
+   A how-to on scheduling links to the scheduling concept page and the
+   SysSchedule reference row.
+
+6. No project-shaped docs at the top level.
+   Users don't care if something lives in SmartData.Server vs SmartData.Core
+   — they care about the task. Reference is the only place where project
+   boundaries matter.
+
+
+Open Questions (decide before writing)
+--------------------------------------
+
+- Overview/Get-started split — one section or two?
+
+- "Fundamentals" vs "Concepts" — naming only.
+
+- Best-practices section? (e.g. "When to use a procedure vs a raw query")
+  Valuable if written well, dead weight if half-written.
+
+- Reference grouping:
+  (a) one page per project (current plan, easier to maintain), or
+  (b) reorganize by topic across assemblies (more MS-docs-like).
+
+- System procedures: one big page, or grouped by concern
+  (schema, backup, scheduling, tracking, logs)?
+
+
+Source Material
+---------------
+
+Existing docs/ files (to be decomposed, NOT copied verbatim):
+  SmartData.Guide.md
+  SmartData.Server.md
+  SmartData.Server.Tracking.md
+  SmartData.Server.Sqlite.md
+  SmartData.Server.SqlServer.md
+  SmartData.Client.md
+  SmartData.Core.md
+  SmartData.Console.md
+  SmartData.Cli.md
+
+These stay as the raw reference pool. New structure pulls from them and
+splits content across overview/fundamentals/how-to/reference as appropriate.

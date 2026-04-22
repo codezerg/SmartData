@@ -1,0 +1,99 @@
+@model BackupsViewModel
+@{
+    var active = Model.ActiveTab;
+    var tabs = new[] {
+        ("backups", "backup", "Backups", $"/{Routes.Prefix}/backups"),
+        ("history", "history", "History", $"/{Routes.Prefix}/backups/history")
+    };
+}
+
+<div class="flex items-center gap-2 text-on-surface-variant text-xs font-bold mb-1">
+    <span class="material-symbols-outlined text-[14px]">backup</span>
+    <span class="uppercase tracking-widest">System</span>
+</div>
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight">Backups</h2>
+    <div class="flex items-center gap-2">
+        <button onclick="document.getElementById('upload-panel').classList.toggle('hidden')"
+                class="border border-slate-300 text-slate-700 px-3 py-1.5 text-sm font-semibold rounded-sm flex items-center gap-1 hover:bg-slate-50 transition-all">
+            <span class="material-symbols-outlined text-[18px]">upload_file</span>
+            Upload
+        </button>
+        <button onclick="document.getElementById('create-panel').classList.toggle('hidden')"
+                class="bg-gradient-to-br from-primary to-primary-container text-white px-4 py-1.5 text-sm font-bold rounded-sm shadow-sm flex items-center gap-1 hover:opacity-90 transition-all">
+            <span class="material-symbols-outlined text-[18px] mr-1">add</span>
+            Create Backup
+        </button>
+    </div>
+</div>
+
+<!-- Create Backup Panel -->
+<div id="create-panel" class="hidden mb-6">
+    <div class="bg-white border border-slate-200 rounded-sm p-5">
+        <div class="text-sm font-semibold text-slate-700 mb-3">Select databases to back up</div>
+        <form hx-post=$"/{Routes.Prefix}/backups/create"
+              hx-target="#content"
+              hx-push-url="false">
+            <div class="flex flex-wrap gap-3 mb-4">
+                <label class="flex items-center gap-2 text-sm border border-slate-200 rounded-sm px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" id="select-all-dbs" onchange="toggleAllDatabases(this)" class="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-semibold text-slate-600">All databases</span>
+                </label>
+                @foreach (var db in Model.Databases)
+                {
+                    <label class="flex items-center gap-2 text-sm border border-slate-200 rounded-sm px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="databases" value="@db.Name" class="db-checkbox rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="material-symbols-outlined text-[14px] text-slate-400">database</span>
+                        <span>@db.Name</span>
+                    </label>
+                }
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                        class="bg-gradient-to-br from-primary to-primary-container text-white px-4 py-1.5 text-sm font-bold rounded-sm shadow-sm hover:opacity-90 transition-all">
+                    Create Backup
+                </button>
+                <button type="button" onclick="document.getElementById('create-panel').classList.add('hidden')"
+                        class="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Upload Panel -->
+<div id="upload-panel" class="hidden mb-6">
+    @await Html.PartialAsync("_BackupUpload")
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 border-b border-slate-200 mb-6">
+    @foreach (var (tab, icon, label, href) in tabs)
+    {
+        var isActive = active == tab;
+        <a class="@(isActive ? "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 -mb-px cursor-pointer" : "flex items-center gap-2 px-4 py-2.5 text-sm text-slate-500 hover:text-indigo-500 border-b-2 border-transparent -mb-px cursor-pointer transition-colors")"
+           hx-get="@href"
+           hx-target="#content"
+           hx-push-url="true">
+            <span class="material-symbols-outlined text-[18px]">@icon</span>
+            <span>@label</span>
+        </a>
+    }
+</div>
+
+@if (active == "backups")
+{
+    @await Html.PartialAsync("_BackupsTable", Model)
+}
+else if (active == "history")
+{
+    @await Html.PartialAsync("_BackupHistory", Model)
+}
+
+<script>
+    function toggleAllDatabases(selectAll) {
+        document.querySelectorAll('.db-checkbox').forEach(cb => cb.checked = selectAll.checked);
+    }
+</script>
+<script src="/_content/SmartData.Console/js/backup-upload.js"></script>

@@ -1,0 +1,110 @@
+@model (SmartData.Contracts.SpanItem Span, Dictionary<string, List<SmartData.Contracts.SpanItem>> ChildMap, double TotalDuration, int Depth)
+@{
+    var span = Model.Span;
+    var childMap = Model.ChildMap;
+    var totalDuration = Model.TotalDuration;
+    var depth = Model.Depth;
+    var hasError = !string.IsNullOrEmpty(span.ErrorMessage);
+    var children = childMap.TryGetValue(span.SpanId, out var c) ? c : new List<SmartData.Contracts.SpanItem>();
+    var barWidth = totalDuration > 0 ? span.DurationMs / totalDuration * 100 : 0;
+    var paddingLeft = 16 + depth * 24;
+    var detailId = $"span-{span.SpanId}";
+    var hasTags = !string.IsNullOrEmpty(span.Tags);
+    var hasAttributes = !string.IsNullOrEmpty(span.Attributes);
+    var hasDetail = hasTags || hasAttributes || hasError;
+}
+
+<div class="@(hasError ? "border-l-2 border-red-400" : "") border-b border-slate-100">
+    <div class="hover:bg-slate-50 transition-colors flex items-center gap-3 py-2.5 pr-4 @(hasDetail ? "cursor-pointer" : "")"
+         style="padding-left: @(paddingLeft)px"
+         @if (hasDetail) { <text>onclick="document.getElementById('@detailId').classList.toggle('hidden')"</text> }>
+        @if (children.Count > 0)
+        {
+            <span class="material-symbols-outlined text-[14px] text-slate-400">subdirectory_arrow_right</span>
+        }
+        else
+        {
+            <span class="w-[14px]"></span>
+        }
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+                <span class="font-mono text-sm @(hasError ? "text-red-600 font-medium" : "text-slate-800")">@span.Name</span>
+                <span class="text-xs text-slate-400">@span.Status</span>
+                @if (hasDetail)
+                {
+                    <span class="material-symbols-outlined text-[14px] text-slate-300">info</span>
+                }
+            </div>
+            <!-- Duration bar -->
+            <div class="w-full bg-slate-100 rounded-sm h-1.5 mt-1">
+                <div class="@(hasError ? "bg-red-400" : "bg-indigo-400") h-1.5 rounded-sm" style="width: @barWidth.ToString("0.#")%"></div>
+            </div>
+        </div>
+        <span class="font-mono text-xs text-slate-500 whitespace-nowrap">@span.DurationMs.ToString("0.#") ms</span>
+    </div>
+
+    @if (hasDetail)
+    {
+        <div id="@detailId" class="hidden bg-slate-50 border-t border-slate-100 py-3 pr-4" style="padding-left: @(paddingLeft + 30)px">
+            @if (hasTags)
+            {
+                <div class="mb-2">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Tags</div>
+                    <div class="flex flex-wrap gap-1">
+                        @foreach (var tag in span.Tags!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            <span class="inline-flex items-center bg-indigo-50 text-indigo-700 text-xs font-mono px-2 py-0.5 rounded-sm">@tag</span>
+                        }
+                    </div>
+                </div>
+            }
+            @if (hasAttributes)
+            {
+                var attrs = new Dictionary<string, string>();
+                try
+                {
+                    var parsed = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(span.Attributes!);
+                    if (parsed != null)
+                        foreach (var kvp in parsed)
+                            attrs[kvp.Key] = kvp.Value.ToString();
+                }
+                catch { }
+
+                <div class="mb-2">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Attributes</div>
+                    @if (attrs.Count > 0)
+                    {
+                        <div class="bg-white border border-slate-200 rounded-sm overflow-hidden">
+                            <table class="w-full text-xs">
+                                @foreach (var kvp in attrs)
+                                {
+                                    <tr class="border-b border-slate-100 last:border-0">
+                                        <td class="px-2 py-1.5 font-mono font-medium text-slate-500 whitespace-nowrap align-top w-40">@kvp.Key</td>
+                                        <td class="px-2 py-1.5 font-mono text-slate-700"><pre class="whitespace-pre-wrap break-all m-0">@kvp.Value</pre></td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <pre class="text-xs text-slate-600 font-mono bg-white border border-slate-200 rounded-sm p-2 overflow-x-auto">@span.Attributes</pre>
+                    }
+                </div>
+            }
+            @if (hasError)
+            {
+                <div>
+                    <div class="text-[10px] text-red-400 uppercase tracking-widest font-bold mb-1">Error</div>
+                    <div class="text-xs text-red-600 font-mono font-medium">@span.ErrorType</div>
+                    <div class="text-xs text-red-500 mt-0.5">@span.ErrorMessage</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@foreach (var child in children)
+{
+    @await Html.PartialAsync("_SpanTree", (child, childMap, totalDuration, depth + 1))
+}
