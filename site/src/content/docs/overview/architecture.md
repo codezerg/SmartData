@@ -7,31 +7,35 @@ SmartData is a .NET 10 data framework built around three ideas: data lives in au
 
 ## Project layers
 
-All projects target `net10.0` and every library publishes a NuGet package.
+All projects target `net10.0`. Every library project publishes a NuGet package; `SmartData.Cli` also publishes a self-contained `sd` executable.
+
+Arrows point toward dependencies:
 
 ```
          ┌──────────────────────────────────────────────────┐
          │  SmartData.Core        binary serializer +       │
          │                        protocol models           │
-         │  SmartData.Contracts   shared provider contracts │
+         │  SmartData.Contracts   shared result DTOs        │
          └──────────────────────────────────────────────────┘
-                                 ▲
-                                 │
-         ┌───────────────────────┴──────────────────────────┐
-         │  SmartData.Server      engine: AutoRepo, procs,  │
-         │                        scheduler, session,       │
-         │                        metrics, backups          │
-         │    ├─ SmartData.Server.Sqlite      dev / local   │
-         │    └─ SmartData.Server.SqlServer   production    │
-         └──────────────────────────────────────────────────┘
-                                 ▲
-                                 │
-         ┌───────────────────────┴──────────────────────────┐
-         │  SmartData.Client      HTTP client for /rpc      │
-         │  SmartData.Cli         `sd` single-file CLI      │
-         │  SmartData.Console     embedded admin UI         │
-         └──────────────────────────────────────────────────┘
+                 ▲                              ▲
+                 │                              │
+   ┌─────────────┴──────────────┐    ┌──────────┴─────────────┐
+   │  SmartData.Server          │    │  SmartData.Client      │
+   │    AutoRepo, procs,        │    │    HTTP client for     │
+   │    scheduler, session,     │    │    POST /rpc           │
+   │    metrics, backups        │    └──────────┬─────────────┘
+   │  ├─ Server.Sqlite          │               ▲
+   │  └─ Server.SqlServer       │               │
+   └────────────┬───────────────┘    ┌──────────┴─────────────┐
+                ▲                    │  SmartData.Cli         │
+                │                    │    `sd` single-file    │
+   ┌────────────┴───────────────┐    │    executable          │
+   │  SmartData.Console         │    └────────────────────────┘
+   │    embedded admin UI       │
+   └────────────────────────────┘
 ```
+
+Client and Cli never reference Server — they're pure RPC consumers. Console is an in-process admin surface and does depend on Server.
 
 | Project | Role | Reference |
 |---|---|---|
@@ -95,7 +99,7 @@ Two caller interfaces separated by trust: `IProcedureService` runs under framewo
 
 ## Provider abstraction
 
-A provider implements four interfaces (`DatabaseProvider`, `SchemaProvider`, `SchemaOperations`, `RawDataProvider`). Registration is a single service call — swap SQLite for SQL Server without touching procedures or entities. Multi-database is first-class: the `Database` arg on each RPC selects which logical database the call targets.
+A provider implements three interfaces from `SmartData.Server/Providers/`: `IDatabaseProvider` (connection + lifecycle), `ISchemaProvider` (read schema), `IRawDataProvider` (raw reads/writes). Registration is a single service call — swap SQLite for SQL Server without touching procedures or entities. Multi-database is first-class: the `Database` arg on each RPC selects which logical database the call targets.
 
 See: [Providers](/fundamentals/providers/).
 
@@ -103,7 +107,7 @@ See: [Providers](/fundamentals/providers/).
 
 | Subsystem | What it does | Read more |
 |---|---|---|
-| Scheduler | `[Daily]` / `[Every]` / `[Weekly]` / `[Monthly]` / `[Once]` attributes on a procedure. Code owns *when*; users own only `Enabled`, retry, and jitter. Multi-instance safe via unique-index claim + heartbeat. | [Scheduling](/fundamentals/scheduling/) |
+| Scheduler | Schedule attributes on a procedure (`[Daily]`, `[Every]`, `[Weekly]`, `[Monthly]`, `[MonthlyDow]`, `[Once]`). Code owns *when*; users own only `Enabled`, retry, and jitter. Multi-instance safe via unique-index claim + heartbeat. | [Scheduling](/fundamentals/scheduling/) |
 | Tracking & Ledger | Opt-in `[Tracked]` provisions `{Table}_History` (post-image + op/user/timestamp). `[Ledger]` adds a SHA-256 hash chain for tamper-evident audit. | [Tracking](/fundamentals/tracking/) |
 | Session / Auth | PBKDF2 password hashing, token-scoped sessions, RBAC permissions. | [smartdata-server](/reference/smartdata-server/) |
 | Metrics | Counters, histograms, and spans collected per-procedure. | [smartdata-server](/reference/smartdata-server/) |
