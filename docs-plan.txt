@@ -173,9 +173,20 @@ Pass 5 — System procedures reference ✅ DONE
   Internal procedures (scheduler pump, execute, retention) flagged [internal].
   Cross-links back to fundamentals + how-tos. Build green.
 
-Pass 6 — Tutorials + samples ⏳ NEXT
-  Write the two end-to-end tutorials. Link samples/ once a samples/ directory
-  exists in the repo.
+Pass 6 — Tutorials + samples ✅ DONE
+  Wrote both tutorials end-to-end:
+    build-a-crud-app.md        — task tracker: entity, DTOs, 4 procedures,
+                                 server wiring, client round-trip via SmartDataClient
+    migrate-an-existing-schema.md — adopting SmartData over an existing DB with
+                                    SchemaMode.Manual, entity mapping, rollout
+                                    rhythm, the gotchas (case, defaults, index
+                                    prefix, FTS, when to flip to Auto)
+  Wrote samples/index.md as a pointer page — no samples/ dir exists in the repo
+  yet; points readers at the tutorials and how-tos in the meantime. Build green.
+
+All passes complete. The site is now a layered MS-docs-style IA (overview →
+get-started → fundamentals → how-to → tutorials → reference → samples) with
+heavy cross-linking and thin reference pages.
 
 
 Out of Scope (for now)
