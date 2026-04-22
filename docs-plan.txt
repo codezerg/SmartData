@@ -130,21 +130,45 @@ Pass 1 — Scaffolding          ✅ DONE
   - Deleted the old top-level guide.md
   - Local build green (35 pages)
 
-Pass 2 — Fundamentals         ⏳ NEXT
-  Decompose docs/SmartData.Guide.md + CLAUDE.md "Core concepts" into the
-  seven fundamentals pages. Biggest reader-value content. Each page links
-  outward to relevant how-tos and reference pages.
+Pass 2 — Fundamentals         ✅ DONE
+  Wrote all seven pages (~1,100 lines of real content):
+    procedures.md        — base classes, params, naming, call flow, auth split, errors
+    entities.md          — attributes, indexes, audit, schema modes, Auto limits
+    database-context.md  — sync/async, querying, transactions, full-text, ctx.Execute
+    binary-rpc.md        — wire format, request/response, flow, trade-offs
+    providers.md         — provider interfaces, SQLite vs SQL Server, multi-db
+    scheduling.md        — attributes, retry (3=3 not 3+1), dev/user split, catch-up
+    tracking.md          — slimmed 899→~100 lines, mental model only
+  Each page cross-links to how-tos and reference.
 
-Pass 3 — How-to recipes
-  Eleven 60-second scannable pages. Each starts with the problem statement,
-  ends with a paste-ready snippet.
+Pass 3 — How-to recipes       ✅ DONE
+  Wrote all 11 recipes (~800 lines):
+    define-a-procedure, add-a-new-entity, return-dtos-not-entities,
+    schedule-a-recurring-job, enable-change-tracking, query-entity-history,
+    register-a-provider, back-up-a-database, write-a-custom-provider,
+    call-procedures-from-a-client, use-the-admin-console.
+  Each: problem statement, paste-ready snippet, cross-links back.
 
-Pass 4 — Reference tightening
-  Trim existing project docs to API surface only. Move long-form explanations
-  into fundamentals if they're still useful; delete otherwise.
+Pass 4 — Reference tightening ⏳ NEXT
+  Current state of reference/ (lines):
+    smartdata-server.md              777   — needs heavy trimming (essay content)
+    smartdata-console.md             328   — needs trimming
+    smartdata-core.md                240   — needs trimming
+    smartdata-cli.md                 181   — probably OK, light trim
+    smartdata-server-sqlserver.md     98   — OK
+    smartdata-server-sqlite.md        88   — OK
+    smartdata-client.md               91   — OK
+    system-procedures.md              14   — stub, needs real content (Pass 5)
+
+  Rule: reference pages are the API surface. Types / signatures / options /
+  one-line descriptions. Mental-model / rationale content moved to
+  fundamentals or deleted (we already own it there). Long-form rationale
+  stays in docs/*.md at repo root as the "pool".
 
 Pass 5 — System procedures reference
-  Enumerate from src/SmartData.Server/SystemProcedures/. One page, six groups.
+  Enumerate from src/SmartData.Server/SystemProcedures/. One page, six groups
+  (schema / backup / scheduling / tracking / logs / users / storage). Each
+  procedure: one-line purpose, parameters, result shape, cross-links.
 
 Pass 6 — Tutorials + samples
   Write the two end-to-end tutorials. Link samples/ once a samples/ directory
