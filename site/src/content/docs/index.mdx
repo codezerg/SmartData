@@ -5,16 +5,54 @@ template: splash
 hero:
   tagline: Batteries-included .NET 10 data framework — typed stored procedures, auto-migrating schema, binary RPC, pluggable providers, and a built-in admin console.
   actions:
+    - text: Install
+      link: /install/
+      icon: right-arrow
     - text: Read the Guide
       link: /guide/
       icon: right-arrow
+      variant: minimal
     - text: View on GitHub
       link: https://github.com/codezerg/SmartData
       icon: external
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Quick install
+
+Add the SmartData NuGet feed, then install a package:
+
+<Tabs>
+  <TabItem label="dotnet CLI">
+    <Code
+      code={`dotnet nuget add source https://smartdata-apis.netlify.app/nuget/v3/index.json --name SmartData
+dotnet add package SmartData.Server.Sqlite`}
+      lang="bash"
+    />
+  </TabItem>
+  <TabItem label="PowerShell">
+    <Code
+      code={`dotnet nuget add source https://smartdata-apis.netlify.app/nuget/v3/index.json --name SmartData
+dotnet add package SmartData.Server.Sqlite`}
+      lang="powershell"
+    />
+  </TabItem>
+  <TabItem label="NuGet.Config">
+    <Code
+      code={`<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="SmartData" value="https://smartdata-apis.netlify.app/nuget/v3/index.json" />
+  </packageSources>
+</configuration>`}
+      lang="xml"
+    />
+  </TabItem>
+</Tabs>
+
+See the [Install page](/install/) for the full package list.
 
 ## What's inside
 

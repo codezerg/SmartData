@@ -16,6 +16,7 @@ export default defineConfig({
 					label: 'Start Here',
 					items: [
 						{ label: 'Introduction', slug: 'index' },
+						{ label: 'Install', slug: 'install' },
 						{ label: 'Guide', slug: 'guide' },
 					],
 				},

@@ -1,0 +1,90 @@
+---
+title: Install
+description: Add the SmartData NuGet feed and install packages.
+---
+
+import { Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+SmartData packages are published to a static NuGet v3 feed hosted alongside this site.
+
+## Feed URL
+
+<Code code="https://smartdata-apis.netlify.app/nuget/v3/index.json" lang="text" />
+
+## Add the feed
+
+<Tabs>
+  <TabItem label="dotnet CLI">
+    <Code
+      code={`dotnet nuget add source https://smartdata-apis.netlify.app/nuget/v3/index.json --name SmartData`}
+      lang="bash"
+    />
+  </TabItem>
+  <TabItem label="PowerShell">
+    <Code
+      code={`dotnet nuget add source https://smartdata-apis.netlify.app/nuget/v3/index.json --name SmartData`}
+      lang="powershell"
+    />
+  </TabItem>
+  <TabItem label="NuGet.Config">
+    <Code
+      code={`<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="SmartData" value="https://smartdata-apis.netlify.app/nuget/v3/index.json" />
+  </packageSources>
+</configuration>`}
+      lang="xml"
+    />
+  </TabItem>
+</Tabs>
+
+The CLI/PowerShell form writes to your global `NuGet.Config`. The `NuGet.Config` tab is the per-repo form — commit it alongside your solution. Combine with `nuget.org` as usual — SmartData only resolves its own package IDs.
+
+## Install packages
+
+Pick the entry point for your app:
+
+```bash
+# Server app (ASP.NET) using SQLite
+dotnet add package SmartData.Server.Sqlite
+
+# Server app using SQL Server
+dotnet add package SmartData.Server.SqlServer
+
+# Client app calling a SmartData server over binary RPC
+dotnet add package SmartData.Client
+
+# Shared DTOs / contracts only
+dotnet add package SmartData.Contracts
+
+# Embedded admin UI
+dotnet add package SmartData.Console
+```
+
+Provider packages transitively pull in `SmartData.Server` and `SmartData.Core`.
+
+## Verify
+
+```bash
+dotnet nuget list source
+dotnet restore
+```
+
+## Packages
+
+| Package | Purpose |
+| --- | --- |
+| `SmartData.Core` | Binary RPC serialization + shared protocol models (no deps) |
+| `SmartData.Contracts` | Shared contracts / provider interfaces (no deps) |
+| `SmartData.Client` | HTTP client for `POST /rpc` |
+| `SmartData.Server` | Engine: AutoRepo ORM, stored procedure framework, scheduler |
+| `SmartData.Server.Sqlite` | SQLite provider |
+| `SmartData.Server.SqlServer` | SQL Server provider |
+| `SmartData.Console` | Embedded admin UI (Razor/MVC) |
+
+## Notes
+
+- **Feed is read-only and public.** No push API, no auth — new versions ship with each site deploy.
+- **No search.** `dotnet add package` by explicit ID works; `dotnet package search SmartData` does not.
+- **Symbols.** `.snupkg` files are not exposed yet. Source Link is embedded in packages, so stepping into source from a debugger works against GitHub directly.
