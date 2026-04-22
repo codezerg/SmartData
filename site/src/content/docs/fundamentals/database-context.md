@@ -115,11 +115,11 @@ Both go through the catalog, bind args by name, and run under the same authority
 ## Handy members
 
 ```csharp
-string           DatabaseName { get; }   // Current database (e.g. "master")
-IServiceProvider Services     { get; }   // Scope's service provider (escape hatch)
+IServiceProvider Services { get; }             // Scope's service provider (escape hatch)
+void             UseDatabase(string dbName);   // Retarget subsequent calls at a different db
 ```
 
-Reach for `Services` only when you need a one-off dependency you didn't declare in the constructor — it's deliberately awkward so that dependencies stay visible on the class.
+Reach for `Services` only when you need a one-off dependency you didn't declare in the constructor — it's deliberately awkward so that dependencies stay visible on the class. `UseDatabase` is how system procedures target a caller-supplied database (e.g. `sp_entity_history`); most app procedures never touch it.
 
 ## Related
 

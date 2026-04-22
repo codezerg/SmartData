@@ -27,7 +27,7 @@ For mental models: [Fundamentals → Procedures](/fundamentals/procedures/),
 | `Procedures/` | `IStoredProcedure`, `StoredProcedure<T>`, `AsyncStoredProcedure<T>`, `IDatabaseContext`, `IKeyValueStore` |
 | `Providers/` | `IDatabaseProvider`, `ISchemaProvider`, `ISchemaOperations`, `IRawDataProvider`, `SchemaMode` |
 | `Scheduling/` | Attributes, `SlotComputer`, `ScheduleReconciler`, `JobScheduler`, `SchedulerOptions` |
-| `SystemProcedures/` | 63 built-in `sp_*` procedures ([catalog](/reference/system-procedures/)) |
+| `SystemProcedures/` | 70 built-in `sp_*` procedures ([catalog](/reference/system-procedures/)) |
 
 ## Registration
 
@@ -99,7 +99,22 @@ app.UseSmartData();   // maps POST /rpc + GET /health
 | `HeartbeatInterval` | `3s` | Cancel-watcher + liveness write cadence. |
 | `OrphanTimeout` | `5m` | Stale `LastHeartbeatAt` threshold before orphan sweep marks `Failed`. |
 | `MaxCatchUp` | `0` | Missed fires queued per schedule per tick (0 drops). Only enable for idempotent jobs. |
-| `InstanceId` | host:pid | Written to `_sys_schedule_runs.InstanceId`. |
+| `InstanceId` | `Environment.MachineName` | Written to `_sys_schedule_runs.InstanceId`. |
+
+### MetricsOptions
+
+| Property | Default | Notes |
+|----------|---------|-------|
+| `Enabled` | `true` | Master on/off switch. |
+| `TraceSampleRate` | `1.0` | Fraction of requests traced (0.0–1.0). Errors are always traced. |
+| `FlushIntervalSeconds` | `60` | Cadence for flushing buffered spans/counters to the metrics DB. |
+| `RetentionDays` | `7` | Rolling metric DBs older than this are deleted. |
+| `SlowQueryThresholdMs` | `500` | Queries slower than this get tagged `slow=true`. |
+| `SpanBufferCapacity` | `1000` | Ring-buffer capacity for completed spans. |
+| `ExceptionBufferCapacity` | `500` | Ring-buffer capacity for captured exceptions. |
+| `MaxSeriesPerInstrument` | `1000` | Max unique tag-sets per instrument before dropping new series. |
+| `FlushOnCapacityRatio` | `0.8` | Flush early when a buffer reaches this fill ratio. |
+| `DatabasePrefix` | `"_metrics"` | Prefix for rolling daily metric databases (`{prefix}_{yyyy_MM_dd}`). |
 
 ## Procedure callers
 
@@ -119,25 +134,50 @@ Scoped; one per procedure execution. Implements `IDisposable`.
 ```csharp
 public interface IDatabaseContext
 {
+    // Data access (sync)
     ITable<T> GetTable<T>() where T : class, new();
     T   Insert<T>(T entity) where T : class, new();
     int Update<T>(T entity) where T : class, new();
     int Delete<T>(T entity) where T : class, new();
     int Delete<T>(Expression<Func<T, bool>> predicate) where T : class, new();
 
-    List<T> FullTextSearch<T>(string searchTerm, int limit = 100) where T : class, new();
+    // Data access (async)
+    Task<T>   InsertAsync<T>(T entity, CancellationToken ct = default) where T : class, new();
+    Task<int> UpdateAsync<T>(T entity, CancellationToken ct = default) where T : class, new();
+    Task<int> DeleteAsync<T>(T entity, CancellationToken ct = default) where T : class, new();
+    Task<int> DeleteAsync<T>(Expression<Func<T, bool>> predicate, CancellationToken ct = default) where T : class, new();
 
+    // Full-text search
+    List<T>       FullTextSearch<T>(string term, int limit = 100) where T : class, new();
+    Task<List<T>> FullTextSearchAsync<T>(string term, int limit = 100, CancellationToken ct = default) where T : class, new();
+
+    // Tracking / ledger (see Server.Tracking)
+    IQueryable<HistoryEntity<T>> History<T>() where T : class, new();
+    IQueryable<LedgerEntity<T>>  Ledger<T>()  where T : class, new();
+    IEnumerable<SchemaMarker>    SchemaMarkers<T>() where T : class, new();
+
+    // Ledger verification
+    VerificationResult Verify<T>() where T : class, new();
+    VerificationResult Verify<T>(IEnumerable<LedgerDigest> anchors) where T : class, new();
+    VerificationResult Verify(string ledgerTableName);
+    VerificationResult Verify(string ledgerTableName, IEnumerable<LedgerDigest> anchors);
+    LedgerDigest       LedgerDigest<T>() where T : class, new();
+    LedgerDigest       LedgerDigest(string ledgerTableName);
+
+    // Transactions
+    ITransaction BeginTransaction();
+
+    // Procedure dispatch
     Task<T> ExecuteAsync<T>(string spName, object? args = null, CancellationToken ct = default);
     void    QueueExecuteAsync(string spName, object? args = null);
 
-    string DatabaseName { get; }
-    void   UseDatabase(string dbName);
-
+    // Context
+    void             UseDatabase(string dbName);
     IServiceProvider Services { get; }
 }
 ```
 
-Concept notes in [Fundamentals → Database context](/fundamentals/database-context/). Transactions: `ctx.BeginTransaction()` (extension via linq2db).
+Concept notes in [Fundamentals → Database context](/fundamentals/database-context/). Transactions use `using var tx = ctx.BeginTransaction(); /* ... */ tx.Commit();` — `Dispose` rolls back if `Commit` wasn't called.
 
 ## Procedure base classes
 
@@ -258,7 +298,7 @@ Archive contents:
 
 ## System procedures
 
-63 built-in `sp_*` procedures grouped by concern (auth, database, table, column, data, index, backup, import/export, logs, metrics, user, settings, scheduling).
+70 built-in `sp_*` procedures grouped by concern (auth, database, table, column, data, index, backup, import/export, logs, metrics, user, settings, scheduling).
 
 Full catalog: [System procedures reference](/reference/system-procedures/).
 

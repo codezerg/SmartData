@@ -60,10 +60,11 @@ Reserve for entities where the audit trail pays for itself. Hot-path entities (e
 // Insert a row
 var p = ctx.Insert(new Product { Name = "Widget", Price = 9.99m, CreatedBy = CurrentUser });
 
-// History mirror appeared
-var firstHistory = ctx.GetTable<ProductHistory>()
-    .First(h => h.EntityId == p.Id);
-// h.Operation == "Insert", h.ChangedBy == CurrentUser, h.ChangedOn ≈ now
+// History mirror appeared — read via ctx.History<T>(), not a generated companion type.
+// Rows are HistoryEntity<Product> — the source entity sits on h.Data.
+var firstHistory = ctx.History<Product>()
+    .First(h => h.Data.Id == p.Id);
+// h.Operation == "I" (I/U/D), h.ChangedBy == CurrentUser, h.ChangedOn ≈ now, h.Data == snapshot
 ```
 
 ## Turning it off

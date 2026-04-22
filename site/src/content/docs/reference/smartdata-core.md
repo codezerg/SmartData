@@ -37,8 +37,7 @@ Request message sent from client to server via `/rpc`.
 |----------|------|-------------|
 | `Command` | `string` | Procedure name (e.g. `sp_customer_list`) |
 | `Token` | `string?` | Authentication token |
-| `Database` | `string?` | Target database name |
-| `Args` | `byte[]?` | Binary-serialized argument dictionary |
+| `Args` | `byte[]?` | Binary-serialized argument dictionary. Target database name travels here as a `Database` argument, not on the envelope. |
 
 ### CommandResponse
 
@@ -49,6 +48,9 @@ Response message returned by the server.
 | `Success` | `bool` | Whether the call succeeded |
 | `Data` | `byte[]?` | Binary-serialized result payload |
 | `Error` | `string?` | Error message on failure |
+| `ErrorId` | `int?` | Message ID of a `ProcedureException` (0–999 system, 1000+ user) |
+| `ErrorSeverity` | `int?` | Severity as `int` (matches `ErrorSeverity` enum) |
+| `Authenticated` | `bool?` | Whether the supplied token was valid for this call |
 
 Helper methods:
 - `Ok(object?)` / `Fail(string)` — static factory methods

@@ -17,11 +17,7 @@ builder.Services.AddSmartDataSqlite();                         // defaults
 builder.Services.AddSmartDataSqlite(o => o.DataDirectory = "data");  // custom path
 ```
 
-Registers all four provider implementations as singletons:
-- `SqliteDatabaseProvider` → `IDatabaseProvider`
-- `SqliteSchemaProvider` → `ISchemaProvider`
-- `SqliteSchemaOperations` → `ISchemaOperations`
-- `SqliteRawDataProvider` → `IRawDataProvider`
+Registers `SqliteDatabaseProvider` as a singleton for `IDatabaseProvider`. The three sub-providers — `SqliteSchemaProvider`, `SqliteSchemaOperations`, `SqliteRawDataProvider` — are exposed as properties (`Schema`, `SchemaOperations`, `RawData`) on the root and are not separately registered in DI.
 
 ## Configuration
 

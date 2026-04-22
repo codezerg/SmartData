@@ -24,8 +24,8 @@ public class CommandRequest
 {
     public string  Command  { get; set; } = "";   // "usp_customer_list"
     public string? Token    { get; set; }         // session token
-    public string? Database { get; set; }         // target db (default "master")
     public byte[]? Args     { get; set; }         // binary-serialized args dictionary
+                                                  //   (includes Database = "master" when targeting a db)
 }
 
 public class CommandResponse
@@ -52,10 +52,10 @@ Client                               Server
   │  POST /rpc                         │
   │  Body: BinarySerialize(            │
   │    CommandRequest {                │
-  │      Command  = "usp_...",         │
-  │      Token    = "...",             │
-  │      Database = "master",          │
-  │      Args     = BinarySerialize({  │
+  │      Command = "usp_...",          │
+  │      Token   = "...",              │
+  │      Args    = BinarySerialize({   │
+  │        Database = "master",        │
   │        key = value, ...            │
   │      })                            │
   │    })                              │
