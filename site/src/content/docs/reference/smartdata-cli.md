@@ -3,13 +3,7 @@ title: SmartData.Cli (sd)
 description: Command-line tool for managing SmartData servers, databases, and data.
 ---
 
-Command-line tool for managing SmartData servers, databases, tables, and data. Published as `sd.exe` in the repo's `bin/` directory.
-
-- **Target:** .NET 10 (self-contained, single-file)
-- **Assembly name:** `sd`
-- **Dependency:** SmartData.Client → SmartData.Core
-- **Protocol:** Binary RPC over HTTP POST to `/rpc`
-- **Config:** `~/.sd/config.json` (persists server, token, database)
+`sd` — command-line client. Self-contained single-file `net10.0`. Depends on SmartData.Client. Config at `~/.sd/config.json`.
 
 ## Configuration
 

@@ -3,11 +3,7 @@ title: SmartData.Core
 description: Shared binary serialization protocol and API models.
 ---
 
-Shared library containing the binary serialization protocol and API models used by both SmartData.Client and SmartData.Server.
-
-- **Target:** .NET 10
-- **No external dependencies**
-- **Used by:** SmartData.Client, SmartData.Server, SmartData.Console
+Binary serialization protocol + API models. Shared by Client, Server, Console. `net10.0`, zero dependencies. Concept notes in [Fundamentals → Binary RPC](/fundamentals/binary-rpc/).
 
 ## Project Structure
 
@@ -29,7 +25,7 @@ SmartData.Core/
 └── VoidResult.cs              Shared return type for procedures with no payload
 ```
 
-**`VoidResult`** — framework-level convention for procedures whose outcome lives on an entity (e.g. `SysScheduleRun.Outcome`) rather than in the return value. Single static `Instance` property. Used by system procedures like `sp_schedule_execute`, `sp_scheduler_tick`, `sp_schedule_cancel`, `sp_schedule_run_retention`. Application-layer procedures may opt in the same way.
+**`VoidResult`** — return type for procedures whose outcome lives elsewhere (e.g. `SysScheduleRun.Outcome`). Single static `Instance`. Used by `sp_schedule_execute`, `sp_scheduler_tick`, etc. Application procedures may opt in the same way.
 
 ## API Models
 
@@ -59,11 +55,11 @@ Helper methods:
 - `GetData<T>()` — deserializes `Data` into a typed result
 - `GetDataAsJson()` — converts `Data` to a JSON string
 
-## Binary Serialization Protocol
+## Binary serialization
 
-Custom compact binary format (similar to MessagePack) for efficient client-server data transfer. Uses single-byte type markers, big-endian byte order, and variable-length integer encoding.
+MessagePack-like compact format. Single-byte markers, big-endian, varint integers.
 
-### BinarySerializer (High-Level API)
+### BinarySerializer
 
 ```csharp
 // Serialize
@@ -230,11 +226,4 @@ Converts binary-serialized data directly to JSON. Useful for debugging and loggi
 | `MaxStructTableSize` | 1,000 |
 | `MaxDepth` | 100 |
 
-## Request/Response Flow
-
-1. Client builds `CommandRequest` with command name, token, database, and binary-serialized args
-2. `CommandRequest` itself is binary-serialized and POSTed to `/rpc`
-3. Server deserializes request, executes the procedure
-4. Server wraps result in `CommandResponse.Ok(result)` (or `.Fail(error)`)
-5. `CommandResponse` is binary-serialized back to the client
-6. Client deserializes and calls `response.GetData<T>()` for typed access
+See [Fundamentals → Binary RPC](/fundamentals/binary-rpc/) for the round-trip flow.

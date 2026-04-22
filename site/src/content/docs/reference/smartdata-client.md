@@ -3,12 +3,7 @@ title: SmartData.Client
 description: HTTP client library for the SmartData binary RPC endpoint.
 ---
 
-HTTP client library for calling SmartData's binary RPC endpoint. Used by the Blazor frontend to communicate with the backend API.
-
-- **Target:** .NET 10
-- **Dependency:** SmartData.Core (binary serialization, API models)
-- **Protocol:** Binary RPC over HTTP POST to `/rpc`
-- **Content type:** `application/x-binaryrpc`
+HTTP client for the `/rpc` endpoint. `net10.0`. Depends on SmartData.Core. Content type `application/x-binaryrpc`. How-to: [Call procedures from a client](/how-to/call-procedures-from-a-client/).
 
 ## SmartDataClient
 
@@ -53,39 +48,4 @@ Task<CommandResponse> SendAsync(string command, Dictionary<string, object>? args
 
 Serializes a `CommandRequest` (command name + token + database + args) via `BinarySerializer`, POSTs to `{serverUrl}/rpc`, and deserializes the `CommandResponse`.
 
-## Request / Response (from SmartData.Core)
-
-### CommandRequest
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Command` | `string` | Procedure name (e.g. `sp_customer_list`) |
-| `Token` | `string?` | Auth token |
-| `Database` | `string?` | Target database |
-| `Args` | `byte[]?` | Binary-serialized argument dictionary |
-
-### CommandResponse
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `Success` | `bool` | Whether the call succeeded |
-| `Data` | `byte[]?` | Binary-serialized result payload |
-| `Error` | `string?` | Error message on failure |
-
-Helper methods:
-- `GetData<T>()` — deserializes `Data` into typed result
-- `GetDataAsJson()` — converts `Data` to JSON string
-- `Ok(object?)` / `Fail(string)` — static factories (server-side)
-
-## Frontend Integration
-
-`DataService` in `SmartApp.Frontend/Services/` wraps `SmartDataClient` and provides convenience methods:
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `CallAsync(procedure, args?)` | `Dictionary<string, object?>` | Untyped dictionary result |
-| `CallAsync<T>(procedure, args?)` | `T?` | Typed deserialization |
-| `CallListAsync(procedure, args?)` | `List<Dictionary<string, object?>>` | List of dictionaries |
-| `CallJsonAsync(procedure, args?)` | `string?` | Raw JSON string |
-
-`DataService` auto-initializes on first call: logs in, creates the database if needed, and seeds data. Args can be passed as a `Dictionary<string, object>` or any object (properties reflected to dictionary).
+`CommandRequest` and `CommandResponse` types come from [SmartData.Core](/reference/smartdata-core/#api-models).

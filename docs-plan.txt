@@ -149,28 +149,31 @@ Pass 3 — How-to recipes       ✅ DONE
     call-procedures-from-a-client, use-the-admin-console.
   Each: problem statement, paste-ready snippet, cross-links back.
 
-Pass 4 — Reference tightening ⏳ NEXT
-  Current state of reference/ (lines):
-    smartdata-server.md              777   — needs heavy trimming (essay content)
-    smartdata-console.md             328   — needs trimming
-    smartdata-core.md                240   — needs trimming
-    smartdata-cli.md                 181   — probably OK, light trim
-    smartdata-server-sqlserver.md     98   — OK
-    smartdata-server-sqlite.md        88   — OK
-    smartdata-client.md               91   — OK
-    system-procedures.md              14   — stub, needs real content (Pass 5)
+Pass 4 — Reference tightening ✅ DONE
+  Trimmed reference/ from 1817 → 1109 lines. Kept API surface (types, options,
+  routes, tables); essay content deleted or replaced with cross-links to
+  fundamentals/how-tos. Long-form rationale stays in docs/*.md at repo root.
+  Post-trim (lines):
+    smartdata-server.md              286   — was 777
+    smartdata-core.md                229   — was 240
+    smartdata-cli.md                 175   — was 181
+    smartdata-console.md             168   — was 328
+    smartdata-server-sqlserver.md     98
+    smartdata-server-sqlite.md        88
+    smartdata-client.md               51   — was 91
+    system-procedures.md              14   — Pass 5
+  Build green (35 pages).
 
-  Rule: reference pages are the API surface. Types / signatures / options /
-  one-line descriptions. Mental-model / rationale content moved to
-  fundamentals or deleted (we already own it there). Long-form rationale
-  stays in docs/*.md at repo root as the "pool".
+Pass 5 — System procedures reference ✅ DONE
+  Enumerated all ~60 procedures from src/SmartData.Server/SystemProcedures/
+  (including Scheduling/ subfolder). Single page at reference/system-procedures.md,
+  grouped by concern: auth/session, databases, tables, columns, indexes, data,
+  backup, users+permissions, settings, logging+telemetry, tracking+history,
+  scheduling. Each row: procedure name, parameters, one-line description.
+  Internal procedures (scheduler pump, execute, retention) flagged [internal].
+  Cross-links back to fundamentals + how-tos. Build green.
 
-Pass 5 — System procedures reference
-  Enumerate from src/SmartData.Server/SystemProcedures/. One page, six groups
-  (schema / backup / scheduling / tracking / logs / users / storage). Each
-  procedure: one-line purpose, parameters, result shape, cross-links.
-
-Pass 6 — Tutorials + samples
+Pass 6 — Tutorials + samples ⏳ NEXT
   Write the two end-to-end tutorials. Link samples/ once a samples/ directory
   exists in the repo.
 
