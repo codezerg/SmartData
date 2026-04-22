@@ -1,15 +1,18 @@
 [build]
-  base    = "site"
-  command = "npm run build"
-  publish = "dist"
+  command = "bash scripts/netlify-build.sh"
+  publish = "site/dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION                = "22"
+  FEED_BASE_URL               = "https://smartdata-apis.netlify.app"
+  DOTNET_CHANNEL              = "10.0"
+  DOTNET_NOLOGO               = "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 
 [[headers]]
   for = "/nuget/*/*.nupkg"
   [headers.values]
-    Content-Type = "application/octet-stream"
+    Content-Type  = "application/octet-stream"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
@@ -20,5 +23,5 @@
 [[headers]]
   for = "/nuget/*.json"
   [headers.values]
-    Content-Type = "application/json"
+    Content-Type  = "application/json"
     Cache-Control = "public, max-age=300"
