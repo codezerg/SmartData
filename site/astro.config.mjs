@@ -12,7 +12,7 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/codezerg/SmartData' },
 			],
 			components: {
-				SocialIcons: './src/components/TopNav.astro',
+				SiteTitle: './src/components/SiteTitle.astro',
 			},
 			sidebar: [
 				{
