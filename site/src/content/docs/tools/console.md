@@ -1,4 +1,7 @@
-# SmartData.Console
+---
+title: SmartData.Console
+description: Embedded MVC-based admin console for database inspection and management.
+---
 
 Embedded MVC-based admin console for database inspection, user management, backups, and data operations. Built on ASP.NET Core with Razor views, HTMX for dynamic interactions, and Tailwind CSS. Routes under `/{RoutePrefix}/` (default `/console/`).
 

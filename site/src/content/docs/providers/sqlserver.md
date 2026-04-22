@@ -1,4 +1,7 @@
-# SmartData.Server.SqlServer
+---
+title: SmartData.Server.SqlServer
+description: SQL Server database provider for SmartData.Server.
+---
 
 SQL Server database provider for SmartData.Server. Implements four provider interfaces using Microsoft.Data.SqlClient and T-SQL. Built on .NET 10.
 

@@ -1,4 +1,7 @@
-# SmartData.Server
+---
+title: SmartData.Server
+description: Server engine — AutoRepo ORM, stored procedures, binary RPC, scheduler, backups.
+---
 
 Server engine for the SmartData framework. Provides AutoRepo ORM with automatic schema migration, a stored procedure framework with binary RPC protocol, pluggable database provider support, session/auth, background execution, and provider-agnostic backup/restore. Built on .NET 10 with linq2db. Database providers (SQLite, SQL Server, etc.) are separate packages.
 

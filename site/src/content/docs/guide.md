@@ -1,4 +1,7 @@
-# SmartData Developer Guide
+---
+title: SmartData Developer Guide
+description: A practical guide to building applications with the SmartData framework.
+---
 
 A practical guide to building applications with the SmartData framework. Covers project setup, defining entities, writing stored procedures, creating contracts, and calling procedures from any .NET application.
 

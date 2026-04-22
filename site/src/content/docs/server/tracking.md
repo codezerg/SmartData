@@ -1,4 +1,7 @@
-# SmartData.Server — Tracking & Ledger
+---
+title: Tracking & Ledger
+description: Opt-in entity mutation history features.
+---
 
 Two opt-in features for capturing entity mutation history, applied at the class level:
 

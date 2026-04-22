@@ -1,4 +1,7 @@
-# SmartData.Client
+---
+title: SmartData.Client
+description: HTTP client library for the SmartData binary RPC endpoint.
+---
 
 HTTP client library for calling SmartData's binary RPC endpoint. Used by the Blazor frontend to communicate with the backend API.
 

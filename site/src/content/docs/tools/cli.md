@@ -1,4 +1,7 @@
-# SmartData.Cli
+---
+title: SmartData.Cli (sd)
+description: Command-line tool for managing SmartData servers, databases, and data.
+---
 
 Command-line tool for managing SmartData servers, databases, tables, and data. Published as `sd.exe` in the repo's `bin/` directory.
 

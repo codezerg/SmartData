@@ -1,4 +1,7 @@
-# SmartData.Server.Sqlite
+---
+title: SmartData.Server.Sqlite
+description: SQLite database provider for SmartData.Server.
+---
 
 SQLite database provider for SmartData.Server. Implements four provider interfaces using Microsoft.Data.Sqlite and SQLite-specific SQL. Built on .NET 10.
 

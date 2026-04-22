@@ -1,4 +1,7 @@
-# SmartData.Core
+---
+title: SmartData.Core
+description: Shared binary serialization protocol and API models.
+---
 
 Shared library containing the binary serialization protocol and API models used by both SmartData.Client and SmartData.Server.
 
