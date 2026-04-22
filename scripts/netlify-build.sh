@@ -24,8 +24,14 @@ echo "==> Installing PowerShell (dotnet global tool)"
 dotnet tool install --global PowerShell
 pwsh --version
 
-echo "==> dotnet pack SmartData.slnx -c Release"
-dotnet pack SmartData.slnx -c Release
+echo "==> dotnet restore"
+dotnet restore SmartData.slnx
+
+echo "==> dotnet build -c Release"
+dotnet build SmartData.slnx -c Release --no-restore
+
+echo "==> dotnet pack -c Release --no-build"
+dotnet pack SmartData.slnx -c Release --no-build
 
 echo "==> Generating static NuGet v3 feed at $FEED_BASE_URL/nuget/v3/"
 pwsh scripts/publish-feed.ps1 -BaseUrl "$FEED_BASE_URL"
