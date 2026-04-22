@@ -4,109 +4,108 @@ SmartData Documentation Plan
 Goal: MS-docs-style IA (pre-2019 MSDN era) — task-oriented, layered, heavily
 cross-linked. NOT a blind reference dump per project.
 
+Docs live in the Astro Starlight site at site/src/content/docs/ and deploy to
+https://smartdata-apis.netlify.app/. Raw long-form source material stays in
+docs/*.md at the repo root — treat these as the pool, not the published surface.
 
-Target Structure
-----------------
 
-docs/
-├── overview/              What SmartData is, when to use it, architecture at 30k ft
-│   ├── what-is-smartdata
-│   ├── architecture
-│   └── compared-to        (vs EF Core, vs Dapper, vs ServiceStack)
-│
-├── get-started/           Minimum path to a running app
-│   ├── install
-│   ├── your-first-procedure
-│   └── your-first-rpc-call
-│
-├── fundamentals/          Mental model — read once, refer back rarely
-│   ├── procedures         The stored-procedure pattern, lifecycle
-│   ├── entities           AutoRepo, attributes, auto-migration
-│   ├── database-context   IDatabaseContext, scoping, transactions
-│   ├── binary-rpc         Wire protocol, serialization, endpoint
-│   ├── providers          How provider interfaces plug together
-│   ├── scheduling         [Daily]/[Every] model, reconciler, SysSchedule
-│   └── tracking           Tracked/Ledger/NotTracked attributes, history
-│
-├── how-to/                Task recipes — "I need to X"
-│   ├── define-a-procedure
-│   ├── add-a-new-entity
-│   ├── return-dtos-not-entities
-│   ├── schedule-a-recurring-job
-│   ├── enable-change-tracking
-│   ├── query-entity-history
-│   ├── register-sql-server-provider
-│   ├── back-up-a-database
-│   ├── write-a-custom-provider
-│   ├── call-procedures-from-a-client
-│   └── use-the-admin-console
-│
-├── tutorials/             End-to-end, 20-30 min each
-│   ├── build-a-crud-app
-│   └── migrate-an-existing-schema
-│
-├── reference/             Exhaustive API surface — thin and scannable, not essays
-│   ├── smartdata-server
-│   ├── smartdata-server-sqlite
-│   ├── smartdata-server-sqlserver
-│   ├── smartdata-client
-│   ├── smartdata-core
-│   ├── smartdata-console
-│   ├── smartdata-cli
-│   └── system-procedures  (one page listing all sp_* with signatures)
-│
-└── samples/               Links/descriptions of runnable examples in /samples
+Structure (active)
+------------------
+
+site/src/content/docs/
+├── index.mdx                    Overview > Introduction (splash/hero)
+├── overview/
+│   └── architecture.md          Projects, layers, at 30k ft
+├── get-started/
+│   ├── install.mdx              Feed setup, package install, sd tool install
+│   ├── your-first-procedure.md  10-min hands-on
+│   └── your-first-rpc-call.md   Server + client round-trip
+├── fundamentals/
+│   ├── procedures.md            StoredProcedure<T>, params, lifecycle, errors
+│   ├── entities.md              AutoRepo, attributes, SchemaMode
+│   ├── database-context.md      IDatabaseContext, queries, transactions
+│   ├── binary-rpc.md            Wire protocol, /rpc endpoint
+│   ├── providers.md             Provider interfaces + plug-in model
+│   ├── scheduling.md            [Daily]/[Every], reconciler, SysSchedule
+│   └── tracking.md              Tracked/Ledger attributes, history (migrated)
+├── how-to/                      11 recipes, each answers one question
+│   ├── define-a-procedure.md
+│   ├── add-a-new-entity.md
+│   ├── return-dtos-not-entities.md
+│   ├── schedule-a-recurring-job.md
+│   ├── enable-change-tracking.md
+│   ├── query-entity-history.md
+│   ├── register-a-provider.md
+│   ├── back-up-a-database.md
+│   ├── write-a-custom-provider.md
+│   ├── call-procedures-from-a-client.md
+│   └── use-the-admin-console.md
+├── tutorials/                   20–30 min end-to-end
+│   ├── build-a-crud-app.md
+│   └── migrate-an-existing-schema.md
+├── reference/                   Thin, scannable — not essays
+│   ├── smartdata-server.md
+│   ├── smartdata-server-sqlite.md
+│   ├── smartdata-server-sqlserver.md
+│   ├── smartdata-client.md
+│   ├── smartdata-core.md
+│   ├── smartdata-console.md
+│   ├── smartdata-cli.md
+│   └── system-procedures.md     sp_* grouped by concern
+└── samples/
+    └── index.md                 Links to runnable examples
 
 
 Design Principles
 -----------------
 
 1. Task-first, reference second.
-   Sidebar opens with overview/get-started/how-to. Reference is the last
-   section, not the first.
+   Sidebar runs overview → get-started → fundamentals → how-to → tutorials →
+   reference → samples. Reference is the last section, not the first.
 
 2. Every how-to answers one question.
-   Titled "How to X". Scannable in 60 seconds. Code sample you can paste.
+   Titled "How to X". Scannable in 60 seconds. Paste-ready code sample.
 
 3. Fundamentals explain the mental model once.
-   Other pages link to them instead of re-explaining concepts.
+   Other pages link back instead of re-explaining concepts.
 
 4. Reference pages are thin.
-   Just the API surface — types, signatures, 1-line descriptions. Readers
-   arrive here knowing what they want; they don't read top-to-bottom.
+   API surface — types, signatures, one-line descriptions. Readers arrive
+   knowing what they want; they don't read top-to-bottom.
 
 5. Cross-linking is heavy.
-   A how-to on scheduling links to the scheduling concept page and the
+   A how-to on scheduling links to fundamentals/scheduling.md and the
    SysSchedule reference row.
 
 6. No project-shaped docs at the top level.
-   Users don't care if something lives in SmartData.Server vs SmartData.Core
-   — they care about the task. Reference is the only place where project
-   boundaries matter.
+   Users don't care if something lives in SmartData.Server vs SmartData.Core.
+   Reference is the only place where project boundaries matter.
 
 
-Open Questions (decide before writing)
---------------------------------------
+Decisions (previously open questions)
+-------------------------------------
 
-- Overview/Get-started split — one section or two?
+- Overview/Get-started split — KEPT separate. Overview is conceptual ("what
+  is this, how does it fit together"), Get Started is action ("install,
+  write your first procedure").
 
-- "Fundamentals" vs "Concepts" — naming only.
+- Fundamentals (not Concepts) — using Fundamentals throughout.
 
-- Best-practices section? (e.g. "When to use a procedure vs a raw query")
-  Valuable if written well, dead weight if half-written.
+- Best-practices section — SKIPPED. Add organically once patterns earn their
+  place. Empty/aspirational sections rot.
 
-- Reference grouping:
-  (a) one page per project (current plan, easier to maintain), or
-  (b) reorganize by topic across assemblies (more MS-docs-like).
+- Reference grouping — one page per project. Matches the code, easier to
+  maintain, unambiguous for consumers who've already picked a package.
 
-- System procedures: one big page, or grouped by concern
-  (schema, backup, scheduling, tracking, logs)?
+- System procedures — grouped by concern (schema / backup / scheduling /
+  tracking / logs / users / storage) inside a single reference page. Easier
+  to scan than splitting into seven micro-pages.
 
 
 Source Material
 ---------------
 
-Existing docs/ files (to be decomposed, NOT copied verbatim):
+Long-form pool at docs/*.md (decomposed, NOT copied verbatim):
   SmartData.Guide.md
   SmartData.Server.md
   SmartData.Server.Tracking.md
@@ -117,5 +116,46 @@ Existing docs/ files (to be decomposed, NOT copied verbatim):
   SmartData.Console.md
   SmartData.Cli.md
 
-These stay as the raw reference pool. New structure pulls from them and
-splits content across overview/fundamentals/how-to/reference as appropriate.
+These stay as the reference pool even after the site stabilizes.
+
+
+Execution Passes
+----------------
+
+Pass 1 — Scaffolding          ✅ DONE
+  - Migrated existing project-shaped docs into reference/
+  - Migrated server/tracking.md into fundamentals/
+  - Created stub pages for every new section with frontmatter
+  - Updated sidebar in astro.config.mjs
+  - Deleted the old top-level guide.md
+  - Local build green (35 pages)
+
+Pass 2 — Fundamentals         ⏳ NEXT
+  Decompose docs/SmartData.Guide.md + CLAUDE.md "Core concepts" into the
+  seven fundamentals pages. Biggest reader-value content. Each page links
+  outward to relevant how-tos and reference pages.
+
+Pass 3 — How-to recipes
+  Eleven 60-second scannable pages. Each starts with the problem statement,
+  ends with a paste-ready snippet.
+
+Pass 4 — Reference tightening
+  Trim existing project docs to API surface only. Move long-form explanations
+  into fundamentals if they're still useful; delete otherwise.
+
+Pass 5 — System procedures reference
+  Enumerate from src/SmartData.Server/SystemProcedures/. One page, six groups.
+
+Pass 6 — Tutorials + samples
+  Write the two end-to-end tutorials. Link samples/ once a samples/ directory
+  exists in the repo.
+
+
+Out of Scope (for now)
+----------------------
+
+- Versioned docs (multiple side-by-side versions)
+- API-extracted XML-doc reference pages (Docfx or similar) — compliant XML
+  comments aren't universal yet
+- Algolia or external search — Starlight's built-in Pagefind covers it
+- i18n

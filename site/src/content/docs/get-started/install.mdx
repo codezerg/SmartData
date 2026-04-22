@@ -64,6 +64,30 @@ dotnet add package SmartData.Console
 
 Provider packages transitively pull in `SmartData.Server` and `SmartData.Core`.
 
+## Install the `sd` CLI
+
+`SmartData.Cli` ships as a .NET global tool. One install, `sd` is on your PATH:
+
+```bash
+dotnet tool install --global SmartData.Cli \
+    --add-source https://smartdata-apis.netlify.app/nuget/v3/index.json
+```
+
+Update later with:
+
+```bash
+dotnet tool update --global SmartData.Cli \
+    --add-source https://smartdata-apis.netlify.app/nuget/v3/index.json
+```
+
+Then:
+
+```bash
+sd --help
+sd connect https://your-server
+sd db list
+```
+
 ## Verify
 
 ```bash
@@ -82,6 +106,7 @@ dotnet restore
 | `SmartData.Server.Sqlite` | SQLite provider |
 | `SmartData.Server.SqlServer` | SQL Server provider |
 | `SmartData.Console` | Embedded admin UI (Razor/MVC) |
+| `SmartData.Cli` | `sd` command-line tool (install via `dotnet tool install -g`) |
 
 ## Notes
 
