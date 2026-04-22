@@ -1,0 +1,14 @@
+# Normalize line endings: LF in repo and working tree on all platforms.
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
+*.snk binary
