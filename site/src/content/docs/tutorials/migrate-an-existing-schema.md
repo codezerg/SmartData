@@ -15,9 +15,9 @@ The short version:
 ## 1. Register with SchemaMode.Manual
 
 ```csharp
-using SmartData.Server;
-using SmartData.Server.Providers;
-using SmartData.Server.Sqlite;
+using SmartData;                     // AddSmartData, AddStoredProcedures, UseSmartData
+using SmartData.Server.Providers;    // SchemaMode
+using SmartData.Server.Sqlite;       // AddSmartDataSqlite
 
 builder.Services.AddSmartData(o => o.SchemaMode = SchemaMode.Manual);
 builder.Services.AddSmartDataSqlite(o => o.DataDirectory = "/var/app/db");

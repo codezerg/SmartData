@@ -23,8 +23,8 @@ dotnet add package SmartData.Server.Sqlite
 Replace `Program.cs`:
 
 ```csharp
-using SmartData.Server;
-using SmartData.Server.Sqlite;
+using SmartData;                     // AddSmartData, AddStoredProcedures, UseSmartData
+using SmartData.Server.Sqlite;       // AddSmartDataSqlite
 
 var builder = WebApplication.CreateBuilder(args);
 
