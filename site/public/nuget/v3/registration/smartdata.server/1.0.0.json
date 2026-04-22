@@ -1,0 +1,47 @@
+﻿{
+    "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/1.0.0.json",
+    "@type":  [
+                  "Package",
+                  "http://schema.nuget.org/catalog#Permalink"
+              ],
+    "catalogEntry":  {
+                         "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/1.0.0.json#catalog",
+                         "@type":  "PackageDetails",
+                         "id":  "SmartData.Server",
+                         "version":  "1.0.0",
+                         "authors":  "SmartData.Server",
+                         "description":  "SmartData server engine — AutoRepo ORM, stored procedure framework, and embedded admin console.",
+                         "listed":  true,
+                         "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server/1.0.0/smartdata.server.1.0.0.nupkg",
+                         "published":  "2026-04-22T10:51:29.7603985Z",
+                         "dependencyGroups":  [
+                                                  {
+                                                      "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/index.json#group",
+                                                      "@type":  "PackageDependencyGroup",
+                                                      "targetFramework":  "net10.0",
+                                                      "dependencies":  [
+                                                                           {
+                                                                               "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/index.json#dep",
+                                                                               "@type":  "PackageDependency",
+                                                                               "id":  "SmartData.Contracts",
+                                                                               "range":  "1.0.0"
+                                                                           },
+                                                                           {
+                                                                               "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/index.json#dep",
+                                                                               "@type":  "PackageDependency",
+                                                                               "id":  "SmartData.Core",
+                                                                               "range":  "1.0.0"
+                                                                           },
+                                                                           {
+                                                                               "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/index.json#dep",
+                                                                               "@type":  "PackageDependency",
+                                                                               "id":  "linq2db",
+                                                                               "range":  "5.4.1"
+                                                                           }
+                                                                       ]
+                                                  }
+                                              ]
+                     },
+    "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server/1.0.0/smartdata.server.1.0.0.nupkg",
+    "registration":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server/index.json"
+}

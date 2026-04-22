@@ -1,0 +1,41 @@
+﻿{
+    "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/1.0.0.json",
+    "@type":  [
+                  "Package",
+                  "http://schema.nuget.org/catalog#Permalink"
+              ],
+    "catalogEntry":  {
+                         "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/1.0.0.json#catalog",
+                         "@type":  "PackageDetails",
+                         "id":  "SmartData.Server.SqlServer",
+                         "version":  "1.0.0",
+                         "authors":  "SmartData.Server.SqlServer",
+                         "description":  "SmartData SQL Server database provider.",
+                         "listed":  true,
+                         "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server.sqlserver/1.0.0/smartdata.server.sqlserver.1.0.0.nupkg",
+                         "published":  "2026-04-22T10:51:29.7228720Z",
+                         "dependencyGroups":  [
+                                                  {
+                                                      "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/index.json#group",
+                                                      "@type":  "PackageDependencyGroup",
+                                                      "targetFramework":  "net10.0",
+                                                      "dependencies":  [
+                                                                           {
+                                                                               "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/index.json#dep",
+                                                                               "@type":  "PackageDependency",
+                                                                               "id":  "SmartData.Server",
+                                                                               "range":  "1.0.0"
+                                                                           },
+                                                                           {
+                                                                               "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/index.json#dep",
+                                                                               "@type":  "PackageDependency",
+                                                                               "id":  "Microsoft.Data.SqlClient",
+                                                                               "range":  "6.0.2"
+                                                                           }
+                                                                       ]
+                                                  }
+                                              ]
+                     },
+    "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server.sqlserver/1.0.0/smartdata.server.sqlserver.1.0.0.nupkg",
+    "registration":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlserver/index.json"
+}

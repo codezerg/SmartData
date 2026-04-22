@@ -1,0 +1,15 @@
+﻿{
+    "version":  "3.0.0",
+    "resources":  [
+                      {
+                          "@id":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/",
+                          "@type":  "PackageBaseAddress/3.0.0",
+                          "comment":  "Base URL for package content (nupkg + nuspec)"
+                      },
+                      {
+                          "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/",
+                          "@type":  "RegistrationsBaseUrl/3.6.0",
+                          "comment":  "Registration (metadata + dependency) resource, SemVer2"
+                      }
+                  ]
+}

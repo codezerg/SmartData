@@ -1,0 +1,63 @@
+﻿{
+    "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json",
+    "@type":  [
+                  "catalog:CatalogRoot",
+                  "PackageRegistration",
+                  "catalog:Permalink"
+              ],
+    "count":  1,
+    "items":  [
+                  {
+                      "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json#page",
+                      "@type":  "catalog:CatalogPage",
+                      "count":  1,
+                      "lower":  "1.0.0",
+                      "upper":  "1.0.0",
+                      "items":  [
+                                    {
+                                        "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/1.0.0.json#page",
+                                        "@type":  "Package",
+                                        "catalogEntry":  {
+                                                             "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/1.0.0.json#catalog",
+                                                             "@type":  "PackageDetails",
+                                                             "id":  "SmartData.Server.Sqlite",
+                                                             "version":  "1.0.0",
+                                                             "authors":  "SmartData.Server.Sqlite",
+                                                             "description":  "SmartData SQLite database provider.",
+                                                             "listed":  true,
+                                                             "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server.sqlite/1.0.0/smartdata.server.sqlite.1.0.0.nupkg",
+                                                             "published":  "2026-04-22T10:51:29.7465457Z",
+                                                             "dependencyGroups":  [
+                                                                                      {
+                                                                                          "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json#group",
+                                                                                          "@type":  "PackageDependencyGroup",
+                                                                                          "targetFramework":  "net10.0",
+                                                                                          "dependencies":  [
+                                                                                                               {
+                                                                                                                   "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json#dep",
+                                                                                                                   "@type":  "PackageDependency",
+                                                                                                                   "id":  "SmartData.Server",
+                                                                                                                   "range":  "1.0.0"
+                                                                                                               },
+                                                                                                               {
+                                                                                                                   "@id":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json#dep",
+                                                                                                                   "@type":  "PackageDependency",
+                                                                                                                   "id":  "Microsoft.Data.Sqlite",
+                                                                                                                   "range":  "10.0.5"
+                                                                                                               }
+                                                                                                           ]
+                                                                                      }
+                                                                                  ]
+                                                         },
+                                        "packageContent":  "https://smartdata-apis.netlify.app/nuget/v3/flatcontainer/smartdata.server.sqlite/1.0.0/smartdata.server.sqlite.1.0.0.nupkg",
+                                        "registration":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json"
+                                    }
+                                ],
+                      "parent":  "https://smartdata-apis.netlify.app/nuget/v3/registration/smartdata.server.sqlite/index.json"
+                  }
+              ],
+    "@context":  {
+                     "@vocab":  "http://schema.nuget.org/schema#",
+                     "catalog":  "http://schema.nuget.org/catalog#"
+                 }
+}

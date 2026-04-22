@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>SmartData.Server</id>
+    <version>1.0.0</version>
+    <authors>SmartData.Server</authors>
+    <readme>README.md</readme>
+    <description>SmartData server engine — AutoRepo ORM, stored procedure framework, and embedded admin console.</description>
+    <repository type="git" commit="9a110807d32ced985a4e19512b3a5a78bd83fb56" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="SmartData.Contracts" version="1.0.0" exclude="Build,Analyzers" />
+        <dependency id="SmartData.Core" version="1.0.0" exclude="Build,Analyzers" />
+        <dependency id="linq2db" version="5.4.1" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net10.0">
+        <frameworkReference name="Microsoft.AspNetCore.App" />
+      </group>
+    </frameworkReferences>
+  </metadata>
+</package>
