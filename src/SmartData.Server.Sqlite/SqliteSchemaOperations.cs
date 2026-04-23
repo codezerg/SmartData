@@ -89,41 +89,325 @@ public class SqliteSchemaOperations : ISchemaOperations
         ExecuteSql(db, $"DROP INDEX [{indexName}]");
     }
 
+    /// <summary>
+    /// SQLite has no native ALTER COLUMN for type / nullability — only ADD / DROP / RENAME.
+    /// The official remediation is the 12-step table rebuild
+    /// (https://sqlite.org/lang_altertable.html#otheralter): copy to temp table with
+    /// the new shape, drop the old, rename. The trap is that a naive rebuild
+    /// reconstructs each column definition from <see cref="ProviderColumnInfo"/>
+    /// — which only carries name / type / nullable / pk / identity — and silently
+    /// drops PRIMARY KEY inline syntax, AUTOINCREMENT, FOREIGN KEYs, CHECK,
+    /// DEFAULT, COLLATE, GENERATED. We saw this the hard way: relaxing one
+    /// orphan NOT NULL column stripped AUTOINCREMENT off the PK, breaking every
+    /// subsequent insert.
+    ///
+    /// Fix: read the original CREATE TABLE SQL from <c>sqlite_master</c>, patch
+    /// only the target column's type / nullability textually, and reuse the rest
+    /// verbatim. Indexes and triggers are snapshotted and replayed after the
+    /// rebuild. Whole thing runs inside a transaction with <c>foreign_keys=OFF</c>
+    /// so a mid-step failure can't leave a half-rebuilt table behind.
+    /// </summary>
     public void AlterColumn(string dbName, string table, string columnName, string newSqlType,
         bool newNullable, IEnumerable<ProviderColumnInfo> allColumns)
     {
-        var columns = allColumns.ToList();
+        var columnNameList = allColumns.Select(c => $"[{c.Name}]").ToList();
+        var columnsCsv = string.Join(", ", columnNameList);
         var tempTableName = $"{table}_temp_{Guid.NewGuid():N}";
-
-        var columnDefs = columns.Select(c =>
-        {
-            var type = string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase) ? newSqlType : c.Type;
-            var nullable = string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase) ? newNullable : c.IsNullable;
-            return $"[{c.Name}] {type} {(nullable ? "NULL" : "NOT NULL")}";
-        });
 
         using var db = OpenConnection(dbName);
 
-        // Check if FTS table exists before alter (triggers will be destroyed by table recreation)
+        var originalCreateSql = ReadSchemaSql(db, "table", table)
+            ?? throw new InvalidOperationException(
+                $"AlterColumn: no CREATE TABLE SQL found for '{table}' in sqlite_master.");
+
+        var patchedCreateSql = RewriteCreateTable(
+            originalCreateSql, tempTableName, columnName, newSqlType, newNullable);
+
+        // Snapshot dependent objects — auto-created indexes (sqlite_autoindex_*)
+        // have NULL sql and are rebuilt automatically by inline PRIMARY KEY /
+        // UNIQUE in the CREATE TABLE we just patched, so the NOT NULL filter
+        // here is correct.
+        var savedIndexes = ReadObjectSqls(db, "index", table);
+        var savedTriggers = ReadObjectSqls(db, "trigger", table);
         var ftsColumns = GetFtsColumns(db, table);
 
+        // PRAGMA foreign_keys is a no-op inside a transaction; set before BEGIN.
+        ExecuteSql(db, "PRAGMA foreign_keys=OFF");
         try
         {
-            ExecuteSql(db, $"CREATE TABLE [{tempTableName}] ({string.Join(", ", columnDefs)})");
-            var columnNames = string.Join(", ", columns.Select(c => $"[{c.Name}]"));
-            ExecuteSql(db, $"INSERT INTO [{tempTableName}] ({columnNames}) SELECT {columnNames} FROM [{table}]");
-            ExecuteSql(db, $"DROP TABLE [{table}]");
-            ExecuteSql(db, $"ALTER TABLE [{tempTableName}] RENAME TO [{table}]");
+            using var tx = db.BeginTransaction();
+            try
+            {
+                ExecuteSql(db, patchedCreateSql, tx);
+                ExecuteSql(db, $"INSERT INTO [{tempTableName}] ({columnsCsv}) SELECT {columnsCsv} FROM [{table}]", tx);
+                ExecuteSql(db, $"DROP TABLE [{table}]", tx);
+                ExecuteSql(db, $"ALTER TABLE [{tempTableName}] RENAME TO [{table}]", tx);
 
-            // Rebuild FTS triggers if they existed before the alter
-            if (ftsColumns != null)
-                CreateFtsTriggers(db, table, ftsColumns);
+                foreach (var sql in savedIndexes) ExecuteSql(db, sql, tx);
+                foreach (var sql in savedTriggers) ExecuteSql(db, sql, tx);
+                if (ftsColumns != null) CreateFtsTriggers(db, table, ftsColumns, tx);
+
+                CheckForeignKeyViolations(db, tx, table);
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
         }
-        catch
+        finally
         {
-            try { ExecuteSql(db, $"DROP TABLE IF EXISTS [{tempTableName}]"); } catch { }
-            throw;
+            try { ExecuteSql(db, "PRAGMA foreign_keys=ON"); } catch { /* best-effort */ }
         }
+    }
+
+    /// <summary>
+    /// Surgically rewrites one column's type + nullability inside an existing
+    /// CREATE TABLE statement. All other syntax — PRIMARY KEY, AUTOINCREMENT,
+    /// FOREIGN KEYs, CHECK, DEFAULT, COLLATE, table-level constraints — is
+    /// preserved byte-for-byte. Also swaps the table name for <paramref name="newTableName"/>
+    /// so the caller can stage the result under a temp name before rename.
+    /// </summary>
+    internal static string RewriteCreateTable(
+        string originalSql, string newTableName,
+        string targetColumn, string newType, bool newNullable)
+    {
+        var openIdx = originalSql.IndexOf('(');
+        var closeIdx = originalSql.LastIndexOf(')');
+        if (openIdx < 0 || closeIdx < 0 || closeIdx <= openIdx)
+            throw new InvalidOperationException("CREATE TABLE SQL missing column-list parentheses.");
+
+        var body = originalSql.Substring(openIdx + 1, closeIdx - openIdx - 1);
+        var tail = originalSql.Substring(closeIdx + 1); // e.g. " WITHOUT ROWID"
+
+        var segments = SplitTopLevel(body);
+        var patched = false;
+        for (var i = 0; i < segments.Count; i++)
+        {
+            var first = ReadFirstIdentifier(segments[i]);
+            if (first != null && first.Equals(targetColumn, StringComparison.OrdinalIgnoreCase))
+            {
+                segments[i] = PatchColumnDefinition(segments[i], newType, newNullable);
+                patched = true;
+            }
+        }
+
+        if (!patched)
+            throw new InvalidOperationException(
+                $"AlterColumn: column '{targetColumn}' not found in CREATE TABLE body.");
+
+        return $"CREATE TABLE [{newTableName}] ({string.Join(",", segments)}){tail}";
+    }
+
+    /// <summary>
+    /// Splits a CREATE TABLE body on top-level commas, respecting nested
+    /// parentheses, string literals ('…'), quoted identifiers ("…"), and
+    /// bracketed identifiers ([…]).
+    /// </summary>
+    private static List<string> SplitTopLevel(string body)
+    {
+        var parts = new List<string>();
+        var depth = 0;
+        var start = 0;
+        var inSingle = false;
+        var inDouble = false;
+        var inBracket = false;
+
+        for (var i = 0; i < body.Length; i++)
+        {
+            var c = body[i];
+            if (inSingle) { if (c == '\'') inSingle = false; continue; }
+            if (inDouble) { if (c == '"') inDouble = false; continue; }
+            if (inBracket) { if (c == ']') inBracket = false; continue; }
+            switch (c)
+            {
+                case '\'': inSingle = true; break;
+                case '"': inDouble = true; break;
+                case '[': inBracket = true; break;
+                case '(': depth++; break;
+                case ')': depth--; break;
+                case ',' when depth == 0:
+                    parts.Add(body.Substring(start, i - start));
+                    start = i + 1;
+                    break;
+            }
+        }
+        if (start < body.Length) parts.Add(body.Substring(start));
+        return parts;
+    }
+
+    /// <summary>
+    /// Reads the first identifier from a segment and strips surrounding quote /
+    /// bracket characters. Returns null for table-level constraints that start
+    /// with a reserved keyword (PRIMARY, UNIQUE, FOREIGN, CHECK, CONSTRAINT).
+    /// </summary>
+    private static string? ReadFirstIdentifier(string segment)
+    {
+        var i = 0;
+        while (i < segment.Length && char.IsWhiteSpace(segment[i])) i++;
+        if (i >= segment.Length) return null;
+
+        string token;
+        if (segment[i] == '[')
+        {
+            var end = segment.IndexOf(']', i);
+            if (end < 0) return null;
+            token = segment.Substring(i + 1, end - i - 1);
+        }
+        else if (segment[i] == '"')
+        {
+            var end = segment.IndexOf('"', i + 1);
+            if (end < 0) return null;
+            token = segment.Substring(i + 1, end - i - 1);
+        }
+        else
+        {
+            var start = i;
+            while (i < segment.Length && !char.IsWhiteSpace(segment[i]) && segment[i] != '(')
+                i++;
+            token = segment.Substring(start, i - start);
+        }
+
+        // Skip table-level constraints.
+        switch (token.ToUpperInvariant())
+        {
+            case "PRIMARY":
+            case "UNIQUE":
+            case "FOREIGN":
+            case "CHECK":
+            case "CONSTRAINT":
+                return null;
+        }
+        return token;
+    }
+
+    /// <summary>
+    /// Rewrites a single column-definition segment: preserve the name and every
+    /// trailing constraint clause (PRIMARY KEY, AUTOINCREMENT, DEFAULT, CHECK,
+    /// COLLATE, REFERENCES …), but swap the type and any existing
+    /// NULL / NOT NULL specifier for the new values.
+    /// </summary>
+    private static string PatchColumnDefinition(string segment, string newType, bool newNullable)
+    {
+        var tokens = TokenizeColumnDef(segment);
+        if (tokens.Count < 2) return segment; // malformed — leave as-is.
+
+        var output = new List<string> { tokens[0], newType };
+        var idx = 2;
+
+        // Skip the original type's trailing size specifier e.g. "(10, 2)".
+        if (idx < tokens.Count && tokens[idx].StartsWith("("))
+            idx++;
+
+        while (idx < tokens.Count)
+        {
+            var t = tokens[idx];
+            var isNot = t.Equals("NOT", StringComparison.OrdinalIgnoreCase);
+            if (isNot && idx + 1 < tokens.Count &&
+                tokens[idx + 1].Equals("NULL", StringComparison.OrdinalIgnoreCase))
+            {
+                idx += 2; // drop existing NOT NULL
+                continue;
+            }
+            if (t.Equals("NULL", StringComparison.OrdinalIgnoreCase) &&
+                (output.Count == 0 ||
+                 !output[^1].Equals("DEFAULT", StringComparison.OrdinalIgnoreCase)))
+            {
+                idx++; // drop a standalone NULL that isn't part of `DEFAULT NULL`
+                continue;
+            }
+            output.Add(t);
+            idx++;
+        }
+
+        output.Add(newNullable ? "NULL" : "NOT NULL");
+        return " " + string.Join(" ", output) + " ";
+    }
+
+    /// <summary>
+    /// Tokenizes a column definition: identifiers (plain / [bracketed] / "quoted"),
+    /// parenthesized groups, string literals, and everything else as words.
+    /// Whitespace separates tokens but is not emitted.
+    /// </summary>
+    private static List<string> TokenizeColumnDef(string segment)
+    {
+        var tokens = new List<string>();
+        var i = 0;
+        while (i < segment.Length)
+        {
+            while (i < segment.Length && char.IsWhiteSpace(segment[i])) i++;
+            if (i >= segment.Length) break;
+
+            var start = i;
+            var c = segment[i];
+
+            if (c == '[')
+            {
+                while (i < segment.Length && segment[i] != ']') i++;
+                if (i < segment.Length) i++;
+            }
+            else if (c == '"' || c == '\'')
+            {
+                var quote = c;
+                i++;
+                while (i < segment.Length && segment[i] != quote) i++;
+                if (i < segment.Length) i++;
+            }
+            else if (c == '(')
+            {
+                var depth = 1;
+                i++;
+                while (i < segment.Length && depth > 0)
+                {
+                    if (segment[i] == '(') depth++;
+                    else if (segment[i] == ')') depth--;
+                    i++;
+                }
+            }
+            else
+            {
+                while (i < segment.Length && !char.IsWhiteSpace(segment[i])
+                       && segment[i] != '(' && segment[i] != '['
+                       && segment[i] != '"' && segment[i] != '\'')
+                    i++;
+            }
+            tokens.Add(segment.Substring(start, i - start));
+        }
+        return tokens;
+    }
+
+    private static string? ReadSchemaSql(SqliteConnection db, string type, string name)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type=@type AND name=@name";
+        cmd.Parameters.AddWithValue("@type", type);
+        cmd.Parameters.AddWithValue("@name", name);
+        return cmd.ExecuteScalar() as string;
+    }
+
+    private static List<string> ReadObjectSqls(SqliteConnection db, string type, string table)
+    {
+        var result = new List<string>();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type=@type AND tbl_name=@table AND sql IS NOT NULL";
+        cmd.Parameters.AddWithValue("@type", type);
+        cmd.Parameters.AddWithValue("@table", table);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            result.Add(reader.GetString(0));
+        return result;
+    }
+
+    private static void CheckForeignKeyViolations(SqliteConnection db, SqliteTransaction tx, string table)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = $"PRAGMA foreign_key_check([{table}])";
+        using var reader = cmd.ExecuteReader();
+        if (reader.Read())
+            throw new InvalidOperationException(
+                $"AlterColumn on '{table}' produced foreign-key violations — rolled back.");
     }
 
     public void CreateFullTextIndex(string dbName, string table, string[] columns)
@@ -165,7 +449,7 @@ public class SqliteSchemaOperations : ISchemaOperations
         return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
     }
 
-    private static void CreateFtsTriggers(SqliteConnection db, string table, string[] columns)
+    private static void CreateFtsTriggers(SqliteConnection db, string table, string[] columns, SqliteTransaction? tx = null)
     {
         var ftsTable = $"{table}_fts";
         var colList = string.Join(", ", columns.Select(c => $"[{c}]"));
@@ -175,18 +459,18 @@ public class SqliteSchemaOperations : ISchemaOperations
         // AFTER INSERT
         ExecuteSql(db, $@"CREATE TRIGGER [{table}_fts_ai] AFTER INSERT ON [{table}] BEGIN
             INSERT INTO [{ftsTable}](rowid, {colList}) VALUES (new.[Id], {newCols});
-        END");
+        END", tx);
 
         // AFTER DELETE
         ExecuteSql(db, $@"CREATE TRIGGER [{table}_fts_ad] AFTER DELETE ON [{table}] BEGIN
             INSERT INTO [{ftsTable}]([{ftsTable}], rowid, {colList}) VALUES ('delete', old.[Id], {oldCols});
-        END");
+        END", tx);
 
         // AFTER UPDATE
         ExecuteSql(db, $@"CREATE TRIGGER [{table}_fts_au] AFTER UPDATE ON [{table}] BEGIN
             INSERT INTO [{ftsTable}]([{ftsTable}], rowid, {colList}) VALUES ('delete', old.[Id], {oldCols});
             INSERT INTO [{ftsTable}](rowid, {colList}) VALUES (new.[Id], {newCols});
-        END");
+        END", tx);
     }
 
     /// <summary>
@@ -266,10 +550,11 @@ public class SqliteSchemaOperations : ISchemaOperations
         return conn;
     }
 
-    private static void ExecuteSql(SqliteConnection conn, string sql)
+    private static void ExecuteSql(SqliteConnection conn, string sql, SqliteTransaction? tx = null)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
+        if (tx != null) cmd.Transaction = tx;
         cmd.ExecuteNonQuery();
     }
 }
