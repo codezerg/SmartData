@@ -22,7 +22,7 @@ public sealed class TrackingMappingRegistry
 {
     private readonly MappingSchema _schema = new();
     private readonly FluentMappingBuilder _builder;
-    private readonly ConcurrentDictionary<Type, byte> _registered = new();
+    private readonly ConcurrentDictionary<Type, Lazy<bool>> _registered = new();
 
     public TrackingMappingRegistry()
     {
@@ -32,21 +32,81 @@ public sealed class TrackingMappingRegistry
     public MappingSchema Schema => _schema;
 
     /// <summary>
+    /// Eagerly register every <c>[Tracked]</c> / <c>[Ledger]</c> type found in
+    /// the given assemblies, in a single <c>Build()</c> call. Call this at
+    /// startup (from <c>UseSmartData</c>) so the fluent mapping is fully
+    /// published before any request can race a first-write registration.
+    /// LinqToDB caches compiled insert/select expressions statically; if the
+    /// first cached expression for <c>HistoryEntity&lt;T&gt;</c> is built
+    /// against a partial schema, every subsequent invocation reuses that bad
+    /// descriptor — causing the exact "no such table: HistoryEntity`1" /
+    /// "UNIQUE constraint failed: *.HistoryId" cascade we saw under stress.
+    /// </summary>
+    public void RegisterAll(IEnumerable<Type> trackedTypes)
+    {
+        lock (_builder)
+        {
+            var registered = false;
+            foreach (var t in trackedTypes)
+            {
+                if (!IsTracked(t)) continue;
+                if (!_registered.TryAdd(t, new Lazy<bool>(() => true))) continue;
+
+                var register = typeof(TrackingMappingRegistry)
+                    .GetMethod(nameof(RegisterHistoryShape), BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .MakeGenericMethod(t);
+                register.Invoke(this, null);
+
+                var mode = (TrackingMode)typeof(TrackedEntityInfo<>)
+                    .MakeGenericType(t).GetProperty(nameof(TrackedEntityInfo<object>.DeclaredMode))!
+                    .GetValue(null)!;
+                if (mode == TrackingMode.Ledger)
+                {
+                    var rl = typeof(TrackingMappingRegistry)
+                        .GetMethod(nameof(RegisterLedgerShape), BindingFlags.NonPublic | BindingFlags.Instance)!
+                        .MakeGenericMethod(t);
+                    rl.Invoke(this, null);
+                }
+                registered = true;
+            }
+            if (registered) _builder.Build();
+        }
+    }
+
+    private static bool IsTracked(Type t)
+    {
+        if (!t.IsClass || t.IsAbstract) return false;
+        if (t.GetConstructor(Type.EmptyTypes) is null) return false;
+        var attrs = t.GetCustomAttributes(inherit: false);
+        return attrs.Any(a =>
+            a.GetType().Name is "TrackedAttribute" or "LedgerAttribute");
+    }
+
+    /// <summary>
     /// Register history and (if applicable) ledger mapping for
-    /// <typeparamref name="T"/>. Idempotent per T. Safe to call concurrently.
+    /// <typeparamref name="T"/>. Idempotent per T. Safe to call concurrently —
+    /// the <see cref="Lazy{T}"/> barrier makes every concurrent caller block
+    /// until the first one finishes <c>Build()</c>. A previous "TryAdd and
+    /// bail" guard let racing threads proceed to insert against a
+    /// half-registered schema, which caused LinqToDB to cache a fallback
+    /// descriptor (no fluent mapping, no identity) for
+    /// <c>HistoryEntity&lt;T&gt;</c> and corrupt every subsequent write.
     /// </summary>
     public void RegisterHistory<T>() where T : class, new()
     {
         var mode = TrackedEntityInfo<T>.DeclaredMode;
         if (mode == TrackingMode.None) return;
-        if (!_registered.TryAdd(typeof(T), 0)) return;
 
-        lock (_builder)
+        _ = _registered.GetOrAdd(typeof(T), _ => new Lazy<bool>(() =>
         {
-            RegisterHistoryShape<T>();
-            if (mode == TrackingMode.Ledger) RegisterLedgerShape<T>();
-            _builder.Build();
-        }
+            lock (_builder)
+            {
+                RegisterHistoryShape<T>();
+                if (mode == TrackingMode.Ledger) RegisterLedgerShape<T>();
+                _builder.Build();
+            }
+            return true;
+        }, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
     }
 
     private void RegisterHistoryShape<T>() where T : class, new()

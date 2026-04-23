@@ -224,9 +224,6 @@ internal sealed class TrackingWritePath
         long historyId;
         try
         {
-            // Explicit tableName overrides LinqToDB's default, which falls back to
-            // the open-generic CLR type name ("HistoryEntity`1") when fluent
-            // mapping for the closed generic isn't resolved at insert time.
             historyId = Convert.ToInt64(conn.InsertWithIdentity(history, tableName: historyTable));
             history.HistoryId = historyId;
         }

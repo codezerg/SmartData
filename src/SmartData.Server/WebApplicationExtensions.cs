@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Options;
 using SmartData.Core.Api;
 using SmartData.Core.BinarySerialization;
 using SmartData.Server;
+using SmartData.Server.Procedures;
 using SmartData.Server.Tracking;
 
 namespace SmartData;
@@ -28,6 +30,20 @@ public static class WebApplicationExtensions
         app.Services.GetRequiredService<DatabaseManager>().EnsureMasterDatabase();
         app.Services.GetRequiredService<SettingsService>().LoadFromDatabase();
         app.Services.GetRequiredService<SessionManager>().Hydrate();
+
+        // Pre-register the fluent mapping for every [Tracked] / [Ledger] type
+        // in all scanned assemblies, before any request can hit TrackingWritePath.
+        // Avoids the first-write race that lets LinqToDB cache a fallback
+        // descriptor for HistoryEntity<T> and corrupt all subsequent writes.
+        var trackingRegistry = app.Services.GetRequiredService<TrackingMappingRegistry>();
+        var assemblies = app.Services.GetServices<ProcedureAssemblyRegistration>()
+            .Select(r => r.Assembly).Distinct();
+        var trackedTypes = assemblies.SelectMany(a =>
+        {
+            try { return a.GetTypes(); }
+            catch (ReflectionTypeLoadException ex) { return ex.Types.Where(t => t is not null)!; }
+        });
+        trackingRegistry.RegisterAll(trackedTypes!);
 
         app.MapPost("/rpc", async (HttpContext ctx, CommandRouter router) =>
         {

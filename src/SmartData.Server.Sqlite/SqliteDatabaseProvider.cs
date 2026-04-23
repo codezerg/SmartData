@@ -27,7 +27,21 @@ public class SqliteDatabaseProvider : IDatabaseProvider
     {
         var connStr = $"Data Source={GetDbFilePath(dbName)}";
         var db = new DataConnection("SQLite", connStr);
-        db.Execute("pragma journal_mode = WAL;");
+        // WAL: concurrent readers alongside a writer, no readers-block-writers.
+        db.Execute("PRAGMA journal_mode = WAL;");
+        // NORMAL: one fsync per checkpoint instead of per commit. Safe under WAL —
+        // the only window of loss is the last few commits on a power-cut, never
+        // corruption. FULL is paranoid for WAL.
+        db.Execute("PRAGMA synchronous = NORMAL;");
+        // Make the busy handler explicit: wait up to 5s for a writer lock before
+        // throwing SQLITE_BUSY. Default varies by provider; pinning makes the
+        // contention behavior predictable.
+        db.Execute("PRAGMA busy_timeout = 5000;");
+        // ~20MB page cache (negative = KB). Keeps hot indexes + History rows in
+        // RAM across transactions.
+        db.Execute("PRAGMA cache_size = -20000;");
+        // Temp B-trees and sort spills stay in memory instead of a temp file.
+        db.Execute("PRAGMA temp_store = MEMORY;");
         return db;
     }
 

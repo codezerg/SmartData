@@ -71,6 +71,7 @@ Two parallel doc sets; know which to read and which to edit.
 - `docs/SmartData.Guide.md` — developer guide (read this first for anything procedure/entity-shaped)
 - `docs/SmartData.Core.md` · `docs/SmartData.Server.md` · `docs/SmartData.Server.Sqlite.md` · `docs/SmartData.Server.SqlServer.md`
 - `docs/SmartData.Server.Tracking.md` · `docs/SmartData.Console.md` · `docs/SmartData.Client.md` · `docs/SmartData.Cli.md`
+- `docs/SmartData.Lessons.md` — **read before refactoring**: load-bearing decisions and incidents behind current code (SQLite `AlterColumn` DDL preservation, orphan NOT NULL relax, eager tracking mapping registration, throughput pragmas, dev-loop via ProjectReference)
 
 **`site/src/content/docs/` (Astro Starlight)** — published site at https://smartdata-apis.netlify.app/. Task-oriented IA, heavy cross-linking, decomposed from the pool (not copied verbatim). ~34 pages in seven sections:
 

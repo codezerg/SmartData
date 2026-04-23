@@ -78,6 +78,37 @@ public static class Program
                 Expect(hist[1].Data.Quantity == 42, $"U row Data.Quantity={hist[1].Data.Quantity}");
             });
 
+            failures += await Case("Concurrent inserts each get distinct HistoryId", async () =>
+            {
+                // Exercise the registration race: many parallel inserts racing
+                // the first RegisterHistory<T> / AttachMapping. A broken barrier
+                // causes one thread to insert with a fallback descriptor
+                // (HistoryId as plain column instead of identity), producing
+                // duplicate HistoryId=0 rows → UNIQUE constraint failure.
+                const int parallel = 32;
+                var ids = new List<int>();
+                await Parallel.ForEachAsync(
+                    Enumerable.Range(0, parallel),
+                    new ParallelOptions { MaxDegreeOfParallelism = 8 },
+                    async (i, ct) =>
+                    {
+                        using var s = app.Services.CreateScope();
+                        var c = s.ServiceProvider.GetRequiredService<IDatabaseContext>();
+                        c.UseDatabase("master");
+                        var w = new Widget { Name = $"race{i}", Quantity = i, CreatedOn = DateTime.UtcNow };
+                        await c.InsertAsync(w, ct);
+                        lock (ids) ids.Add(w.Id);
+                    });
+
+                var hist = await ctx.History<Widget>()
+                    .Where(h => h.Operation == "I" && h.Data.Name!.StartsWith("race"))
+                    .ToListAsync();
+                Expect(hist.Count == parallel, $"expected {parallel} history rows, got {hist.Count}");
+                var distinctHistoryIds = hist.Select(h => h.HistoryId).Distinct().Count();
+                Expect(distinctHistoryIds == parallel,
+                    $"HistoryId not unique across concurrent inserts: {distinctHistoryIds}/{parallel} distinct");
+            });
+
             failures += await Case("Delete appends a D row", async () =>
             {
                 var w = new Widget { Name = "gamma", Quantity = 5, CreatedOn = DateTime.UtcNow };
