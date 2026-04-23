@@ -3,8 +3,22 @@
     <!-- Package output -->
     <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts\</PackageOutputPath>
 
-    <!-- Version (bump here for all packages; override per-project if needed) -->
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <!-- Version: CalVer yy.M.d with HHmmss suffix (UTC). Every pack is a new
+         version, so consumers can reference "*-*" and always get the latest
+         build without NuGet cache collisions. Semver forbids leading zeros in
+         numeric identifiers, so month/day are unpadded and the suffix is
+         prefixed with `t` (e.g. 26.4.23-t143015).
+
+         CRITICAL: the stamp MUST be the same for every project in one pack run
+         — otherwise transitive ProjectReference packages get mismatched
+         versions and fail to restore. Use scripts/pack.ps1 (or pack.sh) which
+         sets SMARTDATA_STAMP once and exports it. Fallback (for IDE builds
+         where versions don't actually ship) uses current UTC, which may skew
+         between projects. -->
+    <SmartDataStamp Condition="'$(SMARTDATA_STAMP)' != ''">$(SMARTDATA_STAMP)</SmartDataStamp>
+    <SmartDataStamp Condition="'$(SmartDataStamp)' == ''">$([System.DateTime]::UtcNow.ToString(`yy.M.d-HHmmss`))</SmartDataStamp>
+    <VersionPrefix>$(SmartDataStamp.Split(`-`)[0])</VersionPrefix>
+    <VersionSuffix>t$(SmartDataStamp.Split(`-`)[1])</VersionSuffix>
 
     <!-- Author / ownership -->
     <Authors>Gregory Minassian</Authors>
