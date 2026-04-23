@@ -211,7 +211,7 @@ internal sealed class LedgerWriter
             CanonicalBytes = canonical,
             PrevHash = prev,
             RowHash = rowHash,
-        });
+        }, tableName: TrackedEntityInfo<T>.LedgerTableName);
     }
 
     private void InsertWithRetry<T>(DataConnection conn, long historyId, byte[] canonical) where T : class, new()
@@ -233,7 +233,7 @@ internal sealed class LedgerWriter
 
             try
             {
-                conn.Insert(row);
+                conn.Insert(row, tableName: TrackedEntityInfo<T>.LedgerTableName);
                 return;
             }
             catch (Exception ex) when (IsUniqueViolation(ex))
