@@ -78,7 +78,7 @@ Five things worth naming:
 2. **`await using` closes cleanly.** Disposal calls `sp_logout` so the server can release the session.
 3. `new()` is a target-typed `Dictionary<string, object>` — `SendAsync` takes the dictionary as the args bag. Pass `Database` here when the target procedure needs it.
 4. Every response carries `Success` / `Error` / `ErrorId` / `ErrorSeverity` — switch on those rather than parsing message strings. Details in [Binary RPC](/fundamentals/binary-rpc/).
-5. If the session is no longer valid (server restart, expiry), `SendAsync` throws `SmartDataException` and the connection transitions to `Broken`. Open a new one to recover.
+5. If the session is no longer valid (TTL expiry, admin revoke), `SendAsync` throws `SmartDataException` and the connection transitions to `Broken`. Open a new one to recover. Sessions are persisted to `_sys_sessions`, so a server restart does **not** invalidate tokens.
 
 Append the DTO classes from step 3 and save.
 

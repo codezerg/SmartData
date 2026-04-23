@@ -11,9 +11,11 @@ Related: [Permissions](/reference/smartdata-server/#permissions), [RequestIdenti
 
 | Procedure | Parameters | Description |
 |-----------|-----------|-------------|
-| `sp_login` | `Username: string`, `Password: string` | Authenticate; returns session token. Anonymous. |
-| `sp_logout` | `Token: string` | Revokes session. |
+| `sp_login` | `Username: string`, `Password: string` | Authenticate; returns session token. Anonymous. Persists row to `_sys_sessions`. |
+| `sp_logout` | `Token: string` | Revokes session and deletes the persisted row. |
 | `sp_session` | — | Current session info: `UserId`, `Username`, `IsAdmin`, `Permissions`. |
+| `sp_session_flush` | — | `[Every(60s)]`. Flushes coalesced sliding-expiration touches into `_sys_sessions`. |
+| `sp_session_purge` | — | `[Every(60s)]`. Removes expired sessions from memory and `_sys_sessions`. |
 
 ## Databases
 

@@ -34,7 +34,7 @@ if (resp.Success)
 | `Closed` | Initial state. `SendAsync` throws `InvalidOperationException`. `ConnectionString` is mutable. |
 | `Connecting` | `OpenAsync` is in flight (calling `sp_login`). |
 | `Open` | Token is set; `SendAsync` works. |
-| `Broken` | Server returned `Authenticated == false` mid-life (session expired, server restarted, admin revoked). Discard and create a new connection. |
+| `Broken` | Server returned `Authenticated == false` mid-life (TTL expired or admin revoked). Discard and create a new connection. Server restarts do not break sessions — they're persisted to `_sys_sessions`. |
 
 `CloseAsync` returns the connection to `Closed`. If the token was obtained via `sp_login` (not from a `Token=` connection-string entry), `CloseAsync` calls `sp_logout` best-effort. `Dispose` / `DisposeAsync` are equivalent to `CloseAsync`.
 

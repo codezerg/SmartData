@@ -425,7 +425,7 @@ builder.Services.AddSmartData(o =>
 
 Databases are managed by `DatabaseManager` which delegates to `IDatabaseProvider`. With the SQLite provider, databases are stored as files in a configured data directory (`data/{name}.db`).
 
-- **Master database** — reserved, auto-created with `_sys_users` (default admin:admin), `_sys_user_permissions`, `_sys_settings`, and `_sys_logs`
+- **Master database** — reserved, auto-created with `_sys_users` (default admin:admin), `_sys_user_permissions`, `_sys_settings`, `_sys_logs`, and `_sys_sessions`
 - **User databases** — created/dropped via procedures; each gets a `_sys_logs` table
 - Multi-database support — procedures target a specific database via the RPC request
 
@@ -433,9 +433,10 @@ Databases are managed by `DatabaseManager` which delegates to `IDatabaseProvider
 
 - PBKDF2-SHA256 hashed passwords stored in `_sys_users` (master database)
 - Login returns a random 32-byte Base64 token
-- Sessions tracked in-memory (`ConcurrentDictionary`) with expiration
-- **Session expiration** — configurable TTL (default 24h) with sliding or absolute expiration. Expired sessions are rejected on access and purged by `SessionCleanupService` (runs every 60s by default)
-- **Session revocation** — disabling or deleting a user immediately revokes all their active sessions via `SessionManager.RevokeUserSessions()`
+- **Session storage** — write-through cache. Reads hit an in-memory `ConcurrentDictionary` for zero per-request DB latency; structural mutations (login / logout / revoke) write through synchronously to `_sys_sessions` in master. Sliding-expiration touches are coalesced and flushed every 60s by `sp_session_flush`. Sessions survive server restarts: on startup `SessionManager.Hydrate()` re-loads non-expired rows and recomputes permissions from `SysUser` / `SysUserPermission`.
+- **Session expiration** — configurable TTL (default 24h) with sliding or absolute expiration. Expired sessions are rejected on access and purged every 60s by `sp_session_purge` (in memory + DB).
+- **Session revocation** — disabling or deleting a user immediately revokes all their active sessions via `SessionManager.RevokeUserSessions()`, which deletes both in-memory entries and the corresponding `_sys_sessions` rows.
+- **Permissions are not persisted on the session row** — only identity (`UserId`) and lifetime are stored. Permissions are recomputed at login and at hydrate; the in-memory snapshot is authoritative for the session's lifetime.
 - All user procedures require authentication — there is no user-accessible opt-out attribute. `[AllowAnonymous]` is framework-internal. For trusted startup/background work, call procedures through `IProcedureService` (which bypasses the auth gate) instead.
 
 ### SessionOptions
@@ -447,15 +448,15 @@ builder.Services.AddSmartData(o =>
 {
     o.Session.SessionTtl = TimeSpan.FromHours(24);    // default — session lifetime
     o.Session.SlidingExpiration = true;                // default — reset TTL on activity
-    o.Session.CleanupIntervalSeconds = 60;             // default — purge interval
 });
 ```
 
 | Property | Default | Description |
 |----------|---------|-------------|
 | `SessionTtl` | `24 hours` | Session time-to-live. Sliding: inactivity timeout. Absolute: max lifetime. |
-| `SlidingExpiration` | `true` | When true, TTL resets on each request. When false, sessions expire at creation + TTL. |
-| `CleanupIntervalSeconds` | `60` | How often the background service scans for expired sessions. |
+| `SlidingExpiration` | `true` | When true, TTL resets on each request and the new `ExpiresAt` is flushed to `_sys_sessions` by the next `sp_session_flush` tick. When false, sessions expire at creation + TTL. |
+
+`sp_session_flush` and `sp_session_purge` both run on a fixed `[Every(60, Seconds)]` schedule — the cadence is not user-configurable today.
 
 ## Health Checks
 
@@ -543,8 +544,10 @@ Converts JSON filter objects to parameterized SQL WHERE clauses. Prevents SQL in
 ### Authentication
 | Procedure | Parameters | Description |
 |-----------|-----------|-------------|
-| `sp_login` | Username, Password | Returns session token (anonymous allowed) |
-| `sp_logout` | Token | Ends session |
+| `sp_login` | Username, Password | Returns session token (anonymous allowed). Persists row to `_sys_sessions`. |
+| `sp_logout` | Token | Ends session. Removes row from `_sys_sessions`. |
+| `sp_session_flush` | — | `[Every(60s)]`. Flushes coalesced sliding-expiration touches to `_sys_sessions`. |
+| `sp_session_purge` | — | `[Every(60s)]`. Deletes expired sessions from memory and `_sys_sessions`. |
 
 ### Database Management
 | Procedure | Parameters | Description |

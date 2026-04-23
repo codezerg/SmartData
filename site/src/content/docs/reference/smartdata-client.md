@@ -41,7 +41,7 @@ if (response.Success)
 | Property | Type | Description |
 |---|---|---|
 | `ConnectionString` | `string` | Read-back masks `Password=***`. Setter requires `State == Closed`. |
-| `State` | `System.Data.ConnectionState` | `Closed`, `Connecting`, `Open`, `Broken`. |
+| `State` | `System.Data.ConnectionState` | `Closed`, `Connecting`, `Open`, `Broken` (TTL expiry or admin revoke; server restarts do not break sessions). |
 | `Token` | `string?` | Read-only; populated by `OpenAsync`. |
 | `ServerUrl` | `string?` | Normalized server URL. |
 | `Timeout` | `TimeSpan` | HTTP timeout. Defaults to `Timeout=` in seconds, else 30s. |

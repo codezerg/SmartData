@@ -64,7 +64,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<DatabaseManager>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<SessionManager>();
-        services.AddHostedService<SessionCleanupService>();
         services.AddSingleton<BackgroundSpQueue>();
         services.AddHostedService<BackgroundSpService>();
 

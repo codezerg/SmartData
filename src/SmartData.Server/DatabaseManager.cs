@@ -29,6 +29,7 @@ internal class DatabaseManager
         SchemaManager<SysUserPermission>.EnsureSchema(MasterDbName, _provider);
         SchemaManager<SysSetting>.EnsureSchema(MasterDbName, _provider);
         SchemaManager<SysLog>.EnsureSchema(MasterDbName, _provider);
+        SchemaManager<SysSession>.EnsureSchema(MasterDbName, _provider);
 
         using var db = _provider.OpenConnection(MasterDbName);
         if (!db.GetTable<SysUser>().Any())

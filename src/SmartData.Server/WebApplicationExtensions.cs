@@ -22,6 +22,7 @@ public static class WebApplicationExtensions
 
         app.Services.GetRequiredService<DatabaseManager>().EnsureMasterDatabase();
         app.Services.GetRequiredService<SettingsService>().LoadFromDatabase();
+        app.Services.GetRequiredService<SessionManager>().Hydrate();
 
         app.MapPost("/rpc", async (HttpContext ctx, CommandRouter router) =>
         {
