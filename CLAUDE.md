@@ -35,7 +35,7 @@ SmartData is a .NET data framework. The project layering (all `net10.0`):
 ```
 SmartData.Core          Binary RPC serialization + shared protocol models (no deps)
 SmartData.Contracts     Shared contracts / provider interfaces (no deps)
-SmartData.Client        HTTP client for POST /rpc  → depends on Core + Contracts
+SmartData.Client        ADO.NET-style `SmartDataConnection` over POST /rpc  → depends on Core + Contracts
 SmartData.Server        Engine: AutoRepo ORM, stored procedure framework, scheduler,
                         session, metrics, backups  → depends on Core + Contracts, linq2db 5.4
 SmartData.Server.Sqlite       SQLite provider  → depends on Server
@@ -55,6 +55,8 @@ SmartData.Cli           `sd` CLI, single-file self-contained  → depends on Cli
 - **Errors.** `RaiseError(msg)` / `RaiseError(id, msg, severity)` throws `ProcedureException`. It is `[DoesNotReturn]`, so nullable flow analysis works. Message IDs: `0–999` system, `1000+` user. `ProcedureException` messages are always returned to the caller; other exceptions return a generic message unless `options.IncludeExceptionDetails = true`.
 - **Scheduler.** A scheduled job is a stored procedure with a `[Daily]`/`[Every]`/`[Weekly]`/`[Monthly]`/`[MonthlyDow]`/`[Once]` attribute. Code owns *when* (attributes are overwritten into `_sys_schedules` on every startup reconcile). Users own only `Enabled`, `RetryAttempts`, `RetryIntervalSeconds`, `JitterSeconds` (preserved across reconciles). `[Retry(attempts: 3)]` = 3 **total** runs (1 initial + 2 retries), not 3 retries. `ErrorSeverity.Fatal` short-circuits retry. Multi-instance safe (unique-index claim + heartbeat). Default catch-up policy drops missed fires; `SchedulerOptions.MaxCatchUp` queues up to N — only enable for idempotent jobs.
 - **Audit fields.** Convention is `CreatedOn`/`CreatedBy`/`ModifiedOn?`/`ModifiedBy?`. Not enforced by the framework — procedures set them. `IDatabaseContext` does not expose the caller identity; pass a `CurrentUser` public parameter on the procedure and have the caller provide it. This keeps procedures decoupled from ASP.NET.
+- **Client is ADO.NET-shaped.** `SmartDataConnection` takes a connection string (`Server=...;User Id=...;Password=...;Token=...;Timeout=...`), parsed by `SmartDataConnectionStringBuilder` (aliases: `UID`/`Username`/`User`, `PWD`). Usage: construct → `OpenAsync` (logs in if creds given, otherwise uses `Token`) → `SendAsync(command, args)` → `DisposeAsync`. `State` exposes `ConnectionState`; `ConnectionString` getter masks `Password`.
+- **Admin surface.** `SmartData.Console` mounts a Razor admin UI at `/console` (configurable via `ConsoleOptions.RoutePrefix`) behind `UseSmartDataConsole()`. The `sd` CLI is a thin wrapper over `SmartDataConnection` — commands are noun/verb (`db`, `table`, `column`, `index`, `sp`, `user`, `backup`, `settings`, `exec`, `dump`, `connect`, `login`, `logs`, `metrics`, `data`, `storage`) and all dispatch to `sp_*` system procedures via `/rpc`. Adding a system procedure auto-exposes it; adding a CLI verb is just wiring in `src/SmartData.Cli/Commands/`.
 
 ### Contracts folder convention
 
@@ -70,7 +72,7 @@ Two parallel doc sets; know which to read and which to edit.
 - `docs/SmartData.Core.md` · `docs/SmartData.Server.md` · `docs/SmartData.Server.Sqlite.md` · `docs/SmartData.Server.SqlServer.md`
 - `docs/SmartData.Server.Tracking.md` · `docs/SmartData.Console.md` · `docs/SmartData.Client.md` · `docs/SmartData.Cli.md`
 
-**`site/src/content/docs/` (Astro Starlight)** — published site at https://smartdata-apis.netlify.app/. Task-oriented IA, heavy cross-linking, decomposed from the pool (not copied verbatim). 35 pages in seven sections:
+**`site/src/content/docs/` (Astro Starlight)** — published site at https://smartdata-apis.netlify.app/. Task-oriented IA, heavy cross-linking, decomposed from the pool (not copied verbatim). ~34 pages in seven sections:
 
 - `overview/` — architecture at 30k ft
 - `get-started/` — install, first procedure, first RPC call
@@ -81,5 +83,3 @@ Two parallel doc sets; know which to read and which to edit.
 - `samples/` — pointer page (no `samples/` dir in the repo yet)
 
 When editing site docs: reference pages are **API surface only** — types, signatures, options, one-line descriptions. Rationale/mental-model content belongs in `fundamentals/`, not reference. Every how-to answers one question. Cross-link liberally.
-
-`docs-plan.txt` at the repo root is the (now-complete) rollout plan and records the design principles.
