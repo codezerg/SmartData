@@ -3,11 +3,11 @@
     <!-- Package output -->
     <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts\</PackageOutputPath>
 
-    <!-- Version: CalVer yy.M.d with HHmmss suffix (UTC). Every pack is a new
-         version, so consumers can reference "*-*" and always get the latest
-         build without NuGet cache collisions. Semver forbids leading zeros in
-         numeric identifiers, so month/day are unpadded and the suffix is
-         prefixed with `t` (e.g. 26.4.23-t143015).
+    <!-- Version: 4-part CalVer yy.M.d.HHmmss (UTC). Every pack is a new
+         version, so consumers can reference "*" and always get the latest
+         build without NuGet cache collisions. NuGet accepts the 4th component
+         as a legacy build number; it's parsed as an integer so leading zeros
+         (hour < 10) are normalized away — no prerelease suffix required.
 
          CRITICAL: the stamp MUST be the same for every project in one pack run
          — otherwise transitive ProjectReference packages get mismatched
@@ -17,8 +17,16 @@
          between projects. -->
     <SmartDataStamp Condition="'$(SMARTDATA_STAMP)' != ''">$(SMARTDATA_STAMP)</SmartDataStamp>
     <SmartDataStamp Condition="'$(SmartDataStamp)' == ''">$([System.DateTime]::UtcNow.ToString(`yy.M.d-HHmmss`))</SmartDataStamp>
-    <VersionPrefix>$(SmartDataStamp.Split(`-`)[0])</VersionPrefix>
-    <VersionSuffix>t$(SmartDataStamp.Split(`-`)[1])</VersionSuffix>
+    <SmartDataDate>$(SmartDataStamp.Split(`-`)[0])</SmartDataDate>
+    <SmartDataTime>$([System.Int32]::Parse($(SmartDataStamp.Split(`-`)[1])))</SmartDataTime>
+    <VersionPrefix>$(SmartDataDate).$(SmartDataTime)</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
+
+    <!-- .NET assembly version components are capped at UInt16 (0-65535), so the
+         HHmmss time would overflow. Keep assembly version stable; only the
+         NuGet package version uses the CalVer stamp. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
 
     <!-- Author / ownership -->
     <Authors>Gregory Minassian</Authors>
