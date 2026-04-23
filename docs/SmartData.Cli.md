@@ -175,4 +175,4 @@ SmartData.Cli/
 
 ## Communication
 
-`ApiClient` wraps `SmartDataClient` and sends `CommandRequest` objects (command name + token + database + binary-serialized args) to the server's `/rpc` endpoint. Responses arrive as `CommandResponse` and are printed as pretty-printed JSON to stdout.
+`ApiClient` wraps `SmartDataConnection`, opening it lazily on the first call. The connection is built from the persisted `ConnectionString` in `~/.sd/config.json`; the active database (set with `db use`) is injected into each call's args. Responses arrive as `CommandResponse` and are printed as pretty-printed JSON to stdout. A `SmartDataException` (server returned `Authenticated == false`) prints `Session expired. Run: sd login` and exits non-zero.

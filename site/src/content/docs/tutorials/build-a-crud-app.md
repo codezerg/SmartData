@@ -242,32 +242,27 @@ dotnet add package SmartData.Client
 ```csharp
 using SmartData.Client;
 
-var client = new SmartDataClient("http://localhost:5000");
-
-// 1. Log in — the framework ships with admin:admin on the master DB.
-var login = await client.SendAsync("sp_login", new()
-{
-    ["Username"] = "admin",
-    ["Password"] = "admin"
-});
-client.Token    = login.GetData<Dictionary<string, object?>>()!["Token"]!.ToString();
-client.Database = "master";
+// 1. Open an authenticated connection — admin:admin is the default on master.
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:5000;User Id=admin;Password=admin");
+await conn.OpenAsync();
 
 // 2. Create a task
-var save = await client.SendAsync("usp_task_save", new()
+var save = await conn.SendAsync("usp_task_save", new()
 {
-    ["Title"] = "Ship the tutorial"
+    ["Database"] = "master",
+    ["Title"]    = "Ship the tutorial"
 });
 Console.WriteLine(save.GetDataAsJson());
 
 // 3. List tasks
-var list = await client.SendAsync("usp_task_list");
+var list = await conn.SendAsync("usp_task_list", new() { ["Database"] = "master" });
 Console.WriteLine(list.GetDataAsJson());
 ```
 
 Run both projects and you should see the task round-trip.
 
-Details on the wire format and the `Token` / `Database` flow: [Binary RPC](/fundamentals/binary-rpc/) and [Call procedures from a client](/how-to/call-procedures-from-a-client/).
+Details on the wire format and the connection lifecycle: [Binary RPC](/fundamentals/binary-rpc/) and [Call procedures from a client](/how-to/call-procedures-from-a-client/).
 
 ## Where to go next
 

@@ -108,16 +108,18 @@ That's it. There is no `/rpc/usp_customer_list` form — the procedure name live
 
 ## The client side
 
-`SmartDataClient` wraps all of this:
+`SmartDataConnection` wraps all of this:
 
 ```csharp
-var client = new SmartDataClient("http://localhost:5124");
-client.Database = "master";
-client.Token    = sessionToken;
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:5124;User Id=admin;Password=secret");
 
-var response = await client.SendAsync("usp_customer_list",
+await conn.OpenAsync();   // performs sp_login
+
+var response = await conn.SendAsync("usp_customer_list",
     new Dictionary<string, object>
     {
+        ["Database"] = "master",
         ["Search"]   = "acme",
         ["Page"]     = 1,
         ["PageSize"] = 20

@@ -3,7 +3,7 @@ title: Call procedures from a client
 description: Use SmartData.Client to invoke procedures over binary RPC.
 ---
 
-`SmartDataClient` wraps the binary RPC protocol. Construct one, set `Database` and `Token`, call `SendAsync`.
+`SmartDataConnection` wraps the binary RPC protocol. Build it with a connection string, `OpenAsync` once, then `SendAsync` per call.
 
 ## Install
 
@@ -16,13 +16,15 @@ dotnet add package SmartData.Client
 ```csharp
 using SmartData.Client;
 
-var client = new SmartDataClient("http://localhost:5124");
-client.Database = "master";
-client.Token    = sessionToken;     // after login
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:5124;User Id=admin;Password=secret");
 
-var response = await client.SendAsync("usp_customer_list",
+await conn.OpenAsync();   // performs sp_login, stores the token
+
+var response = await conn.SendAsync("usp_customer_list",
     new Dictionary<string, object>
     {
+        ["Database"] = "master",
         ["Search"]   = "acme",
         ["Page"]     = 1,
         ["PageSize"] = 20,
@@ -40,26 +42,19 @@ else
 }
 ```
 
-## Login first
+## Reusing a token
 
-Authentication is a procedure call too — there's no separate auth endpoint:
+When you've already logged in elsewhere (e.g. a CLI persisted the token to disk), open with `Token=` instead of credentials. `OpenAsync` skips `sp_login`:
 
 ```csharp
-var loginResp = await client.SendAsync("sp_login",
-    new Dictionary<string, object>
-    {
-        ["Username"] = "admin",
-        ["Password"] = secret,
-    });
+await using var conn = new SmartDataConnection(
+    $"Server=http://localhost:5124;Token={persistedToken}");
 
-if (!loginResp.Success)
-    throw new InvalidOperationException(loginResp.Error);
-
-var login = loginResp.GetData<LoginResult>();
-client.Token = login.Token;      // reuse across subsequent calls
+await conn.OpenAsync();
+// SendAsync will surface SmartDataException if the token has expired.
 ```
 
-The client treats `Token` as opaque — store it in whatever session/cookie mechanism your app uses.
+`Token` and `User Id`/`Password` are mutually exclusive — supplying both throws on `OpenAsync`.
 
 ## DTOs — keep them matching by name
 
@@ -96,11 +91,11 @@ public class CustomerItem
 | `ErrorSeverity` | 0 = Error, 1 = Severe, 2 = Fatal |
 | `Authenticated` | Whether the token was valid |
 
-`ErrorId` + `ErrorSeverity` let clients switch on failure types without matching strings.
+When `Authenticated == false`, `SendAsync` throws `SmartDataException` and the connection transitions to `Broken`. Open a new connection to recover.
 
-## HttpClient lifetime
+## Connection lifetime
 
-`SmartDataClient` holds an internal `HttpClient`. For short-lived tools just new one up. For a long-running app, treat it as a singleton — reuse the same client, change `Token` / `Database` per call as needed.
+`SmartDataConnection` is `IAsyncDisposable`. For a long-running app, hold one open connection and share it; for short-lived tools, `await using` ensures `sp_logout` runs on dispose. The setter on `ConnectionString` requires `State == Closed` — open one connection per credential pair.
 
 ## Related
 

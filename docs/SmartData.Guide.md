@@ -1131,24 +1131,27 @@ public class CustomersController : Controller
 _procedures.QueueExecuteAsync("usp_send_weekly_report", new { Week = 42 });
 ```
 
-### Remote: SmartDataClient
+### Remote: SmartDataConnection
 
-For applications where the frontend and backend are separate processes. `SmartDataClient` sends binary RPC requests to the `POST /rpc` endpoint.
+For applications where the frontend and backend are separate processes. `SmartDataConnection` is modeled on `System.Data.SqlConnection`: build it with a connection string, `OpenAsync` once, then `SendAsync` per call.
 
 **Setup:**
 ```csharp
-var client = new SmartDataClient("http://localhost:5124");
-client.Database = "master";
-client.Token = "session-token-here";
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:5124;User Id=admin;Password=secret");
+
+await conn.OpenAsync();   // performs sp_login, stores the token
 ```
+
+If you've already obtained a token elsewhere (e.g. the CLI persisted it), open with `Token=` instead — `OpenAsync` skips the login round-trip.
 
 **Calling procedures:**
 ```csharp
-// Send a command and get the raw response
-var response = await client.SendAsync("usp_customer_list", new Dictionary<string, object>
+var response = await conn.SendAsync("usp_customer_list", new Dictionary<string, object>
 {
-    ["Search"] = "acme",
-    ["Page"] = 1,
+    ["Database"] = "master",
+    ["Search"]   = "acme",
+    ["Page"]     = 1,
     ["PageSize"] = 20
 });
 
@@ -1163,13 +1166,16 @@ else
 }
 ```
 
-**SmartDataClient API:**
+**SmartDataConnection API:**
 
 | Member | Purpose |
 |--------|---------|
-| `Token` | Session token for authentication (set after login) |
-| `Database` | Target database name (default: `"master"`) |
-| `SendAsync(command, args)` | Sends a binary RPC request, returns `CommandResponse` |
+| `ConnectionString` | Driven by `Server`, `User Id`, `Password`, `Token`, `Timeout` keys. Read-back masks the password. |
+| `State` | `System.Data.ConnectionState` — `Closed` / `Connecting` / `Open` / `Broken` |
+| `Token` | Read-only token, populated by `OpenAsync` |
+| `OpenAsync()` | Performs `sp_login` (or trusts a supplied `Token=`) |
+| `CloseAsync()` | Calls `sp_logout` if the token came from login; resets state to `Closed` |
+| `SendAsync(command, args)` | Throws if not `Open`; returns `CommandResponse`. Throws `SmartDataException` if the server reports `Authenticated == false` (state → `Broken`). |
 
 **CommandResponse API:**
 

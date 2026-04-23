@@ -4,15 +4,23 @@ HTTP client for SmartData's binary RPC protocol.
 
 ## Features
 
-- `SmartDataClient` for making typed RPC calls over a single `/rpc` endpoint
-- Binary serialization/deserialization via SmartData.Core
-- Typed `CallAsync<T>`, `CallListAsync`, and `CallJsonAsync` methods
+- `SmartDataConnection` — `SqlConnection`-style stateful connection with `OpenAsync` / `CloseAsync`
+- `SmartDataConnectionStringBuilder` — strongly-typed conn-string keys
+- Binary serialization via SmartData.Core
 
 ## Usage
 
 ```csharp
-services.AddSmartDataClient(options =>
+using SmartData.Client;
+
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:5124;User Id=admin;Password=secret");
+
+await conn.OpenAsync();   // performs sp_login
+
+var resp = await conn.SendAsync("usp_customer_list", new Dictionary<string, object>
 {
-    options.BaseUrl = "http://localhost:5124";
+    ["Database"] = "master",
+    ["Search"]   = "acme",
 });
 ```

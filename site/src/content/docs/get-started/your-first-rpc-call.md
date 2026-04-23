@@ -3,7 +3,7 @@ title: Your first RPC call
 description: Wire up SmartData.Client and invoke the procedure from your-first-procedure over binary RPC.
 ---
 
-Same procedure as [the previous page](/get-started/your-first-procedure/) — `usp_customer_list` — now called from a separate console process over HTTP. The only functional changes are (a) logging in, and (b) `SmartDataClient.SendAsync` in place of `IProcedureService.ExecuteAsync`. Everything else stays the same.
+Same procedure as [the previous page](/get-started/your-first-procedure/) — `usp_customer_list` — now called from a separate console process over HTTP. The only functional changes are (a) opening an authenticated connection, and (b) `SmartDataConnection.SendAsync` in place of `IProcedureService.ExecuteAsync`. Everything else stays the same.
 
 Prereqs:
 
@@ -12,7 +12,7 @@ Prereqs:
 
 ## 1. Why auth now matters
 
-The previous page used `IProcedureService` — framework authority, auth gate bypassed, `UserId = "system"`. `POST /rpc` is wired to `IAuthenticatedProcedureService` instead, so every incoming call needs a valid session token. We'll log in once with the built-in `admin`/`admin` account and reuse the token.
+The previous page used `IProcedureService` — framework authority, auth gate bypassed, `UserId = "system"`. `POST /rpc` is wired to `IAuthenticatedProcedureService` instead, so every incoming call needs a valid session token. `SmartDataConnection` handles login on `OpenAsync`; we just supply credentials in the connection string.
 
 No change to the server is required. See [Procedures → Two callers, one boundary](/fundamentals/procedures/#two-callers-one-boundary) for the trust split.
 
@@ -24,7 +24,6 @@ dotnet new console -n HelloSmartData.Demo
 cd HelloSmartData.Demo
 
 dotnet add package SmartData.Client
-dotnet add package SmartData.Contracts   # for LoginResult
 ```
 
 ## 3. Mirror the result DTO
@@ -48,33 +47,22 @@ public class Customer
 
 See [Return DTOs, not entities](/how-to/return-dtos-not-entities/) for why production code should return a narrower DTO instead of the entity.
 
-## 4. Program.cs — log in, then call
+## 4. Program.cs — open, then call
 
 Replace `Program.cs` (substitute `<port>` with the port the server is listening on):
 
 ```csharp
 using SmartData.Client;
-using SmartData.Contracts;     // LoginResult
 
-var client = new SmartDataClient("http://localhost:<port>");
+await using var conn = new SmartDataConnection(
+    "Server=http://localhost:<port>;User Id=admin;Password=admin");
 
-// 1. Log in (admin:admin is the default on the master database)
-var loginResp = await client.SendAsync("sp_login", new()
+await conn.OpenAsync();   // performs sp_login, stores the token
+
+var listResp = await conn.SendAsync("usp_customer_list", new()
 {
-    ["Username"] = "admin",
-    ["Password"] = "admin",
-});
-if (!loginResp.Success)
-    throw new Exception($"Login failed: {loginResp.Error}");
-
-var login = loginResp.GetData<LoginResult>()!;
-client.Token    = login.Token;
-client.Database = "master";
-
-// 2. Call the procedure
-var listResp = await client.SendAsync("usp_customer_list", new()
-{
-    ["Search"] = "acme",
+    ["Database"] = "master",
+    ["Search"]   = "acme",
 });
 if (!listResp.Success)
     throw new Exception($"{listResp.Error} (id={listResp.ErrorId})");
@@ -86,11 +74,11 @@ foreach (var c in result.Items)
 
 Five things worth naming:
 
-1. `new()` is a target-typed `Dictionary<string, object>` — `SendAsync` takes the dictionary as the args bag.
-2. **Login is a procedure, not an endpoint.** `sp_login` is one more RPC call, no special route.
-3. `Token` and `Database` are plain settable properties — set once after login, reuse for every subsequent call.
+1. **Connection string drives auth.** `Server`, `User Id`, `Password` (or a pre-existing `Token=`) are the only knobs. `OpenAsync` calls `sp_login` for you and remembers the token for every subsequent `SendAsync`.
+2. **`await using` closes cleanly.** Disposal calls `sp_logout` so the server can release the session.
+3. `new()` is a target-typed `Dictionary<string, object>` — `SendAsync` takes the dictionary as the args bag. Pass `Database` here when the target procedure needs it.
 4. Every response carries `Success` / `Error` / `ErrorId` / `ErrorSeverity` — switch on those rather than parsing message strings. Details in [Binary RPC](/fundamentals/binary-rpc/).
-5. Browser devtools can't inspect `/rpc` — it's binary. Use `response.GetDataAsJson()` server-side when debugging.
+5. If the session is no longer valid (server restart, expiry), `SendAsync` throws `SmartDataException` and the connection transitions to `Broken`. Open a new one to recover.
 
 Append the DTO classes from step 3 and save.
 
@@ -128,4 +116,4 @@ Full picture: [Architecture → Request lifecycle](/overview/architecture/#reque
 
 - **Four-procedure CRUD.** [Build a CRUD app](/tutorials/build-a-crud-app/) extends this with save, delete, and DTO folder layout.
 - **Mental model.** [Binary RPC](/fundamentals/binary-rpc/) — wire format, call flow, error fields.
-- **API surface.** [SmartData.Client reference](/reference/smartdata-client/) — the full `SmartDataClient` surface.
+- **API surface.** [SmartData.Client reference](/reference/smartdata-client/) — the full `SmartDataConnection` surface.

@@ -1,9 +1,24 @@
+using SmartData.Client;
+
 namespace SmartData.Cli.Commands;
 
 public static class LoginCommand
 {
     public static async Task Run(string[] args, SdConfig config, ApiClient client)
     {
+        if (string.IsNullOrEmpty(config.ConnectionString))
+        {
+            Console.Error.WriteLine("Not connected. Run: sd connect <server>");
+            return;
+        }
+
+        var builder = new SmartDataConnectionStringBuilder(config.ConnectionString);
+        if (string.IsNullOrEmpty(builder.Server))
+        {
+            Console.Error.WriteLine("Not connected. Run: sd connect <server>");
+            return;
+        }
+
         var username = ArgParser.GetFlag(args, "--username");
         var password = ArgParser.GetFlag(args, "--password");
 
@@ -25,36 +40,53 @@ public static class LoginCommand
             return;
         }
 
-        var result = await client.SendAsync("sp_login", new Dictionary<string, object>
-        {
-            ["Username"] = username,
-            ["Password"] = password
-        });
+        builder.Token = null;
+        builder.UserId = username;
+        builder.Password = password;
 
-        if (!result.Success)
+        await using var conn = new SmartDataConnection(builder.ConnectionString);
+        try
         {
-            Console.Error.WriteLine($"Login failed: {result.Error}");
+            await conn.OpenAsync();
+        }
+        catch (SmartDataException ex)
+        {
+            Console.Error.WriteLine($"Login failed: {ex.Message}");
             return;
         }
 
-        var data = result.GetData<Dictionary<string, object>>();
-        if (data != null && data.TryGetValue("Token", out var tokenObj))
-        {
-            config.Token = tokenObj?.ToString();
-            config.Save();
-            Console.WriteLine("Logged in successfully.");
-        }
+        builder.UserId = null;
+        builder.Password = null;
+        builder.Token = conn.Token;
+        config.ConnectionString = builder.ConnectionString;
+        config.Save();
+
+        Console.WriteLine("Logged in successfully.");
     }
 
     public static async Task Logout(SdConfig config, ApiClient client)
     {
-        if (!string.IsNullOrEmpty(config.Token))
+        if (!string.IsNullOrEmpty(config.ConnectionString))
         {
-            await client.SendAsync("sp_logout", new Dictionary<string, object> { ["Token"] = config.Token });
+            var builder = new SmartDataConnectionStringBuilder(config.ConnectionString);
+            if (!string.IsNullOrEmpty(builder.Token))
+            {
+                await using var conn = new SmartDataConnection(builder.ConnectionString);
+                try
+                {
+                    await conn.OpenAsync();
+                    await conn.SendAsync("sp_logout", new Dictionary<string, object> { ["Token"] = builder.Token! });
+                }
+                catch
+                {
+                }
+
+                builder.Token = null;
+                config.ConnectionString = builder.ConnectionString;
+                config.Save();
+            }
         }
 
-        config.Token = null;
-        config.Save();
         Console.WriteLine("Logged out.");
     }
 }

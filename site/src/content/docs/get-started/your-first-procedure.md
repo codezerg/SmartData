@@ -175,7 +175,7 @@ First call creates `data/master.db`, provisions the `Customer` table + index, in
 
 ## Where to go next
 
-- **Call it remotely.** [Your first RPC call](/get-started/your-first-rpc-call/) — swap `IProcedureService` for a `SmartDataClient` over HTTP.
+- **Call it remotely.** [Your first RPC call](/get-started/your-first-rpc-call/) — swap `IProcedureService` for a `SmartDataConnection` over HTTP.
 - **Four-procedure CRUD.** [Build a CRUD app](/tutorials/build-a-crud-app/) extends this with save, delete, DTOs, and a client project.
 - **Mental model.** [Procedures](/fundamentals/procedures/) — naming, registration, lifecycle, errors.
 - **What `ctx` can do.** [Database context](/fundamentals/database-context/) — `Insert` / `Update` / `Delete`, transactions, sub-procedure calls.

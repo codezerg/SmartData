@@ -117,9 +117,11 @@ case-insensitive naming.
 ### 5. Call it from a client
 
 ```csharp
-var client = new SmartDataClient("https://your-server") { Token = sessionToken };
+await using var conn = new SmartDataConnection(
+    $"Server=https://your-server;Token={sessionToken}");
+await conn.OpenAsync();
 
-var response = await client.SendAsync("usp_customer_list",
+var response = await conn.SendAsync("usp_customer_list",
     new Dictionary<string, object> { ["Search"] = "acme", ["Page"] = 1 });
 
 if (response.Success)

@@ -6,7 +6,7 @@ public static class DbCommand
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: ds db <list|create|drop|use> [args]");
+            Console.WriteLine("Usage: sd db <list|create|drop|use> [args]");
             return;
         }
 
@@ -20,17 +20,17 @@ public static class DbCommand
                 break;
 
             case "create":
-                if (rest.Length < 1) { Console.Error.WriteLine("Usage: ds db create <name>"); return; }
+                if (rest.Length < 1) { Console.Error.WriteLine("Usage: sd db create <name>"); return; }
                 await client.SendAndPrint("sp_database_create", new() { ["Name"] = rest[0] });
                 break;
 
             case "drop":
-                if (rest.Length < 1) { Console.Error.WriteLine("Usage: ds db drop <name>"); return; }
+                if (rest.Length < 1) { Console.Error.WriteLine("Usage: sd db drop <name>"); return; }
                 await client.SendAndPrint("sp_database_drop", new() { ["Name"] = rest[0] });
                 break;
 
             case "use":
-                if (rest.Length < 1) { Console.Error.WriteLine("Usage: ds db use <name>"); return; }
+                if (rest.Length < 1) { Console.Error.WriteLine("Usage: sd db use <name>"); return; }
                 config.Database = rest[0];
                 config.Save();
                 Console.WriteLine($"Using database: {rest[0]}");
