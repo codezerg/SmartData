@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using LinqToDB.Mapping;
+using Microsoft.Extensions.Logging;
 using SmartData.Server.Attributes;
 using SmartData.Server.Providers;
 using SmartData.Server.Tracking;
@@ -59,6 +60,9 @@ internal static class SchemaManager<T> where T : class, new()
                         schemaOps.AlterColumn(dbName, tableName, entityCol.Name, sqlType, entityCol.Nullable, snapshot.Columns);
                     }
                 }
+
+                if (SchemaLog.RelaxOrphanNotNull)
+                    RelaxOrphanColumns(dbName, tableName, entityColumns, snapshot.Columns, schemaOps);
 
                 EnsureIndexes(dbName, tableName, snapshot.Indexes, provider, indexOptions ?? new IndexOptions());
             }
@@ -124,6 +128,39 @@ internal static class SchemaManager<T> where T : class, new()
         if (type == typeof(double) || type == typeof(float)) return "double";
         if (type.IsEnum) return "int";
         return "string";
+    }
+
+    /// <summary>
+    /// Reverse pass: columns present in the DB but not on the entity are "orphans"
+    /// (property was removed or renamed). Auto mode never drops columns, but a
+    /// NOT NULL orphan breaks every future insert that doesn't supply a value.
+    /// Relaxing them to nullable fixes inserts without touching data. Developers
+    /// can still drop deliberately via <c>sp_column_drop</c>.
+    /// </summary>
+    private static void RelaxOrphanColumns(
+        string dbName, string tableName,
+        List<ColumnDefinition> entityColumns,
+        IReadOnlyList<ProviderColumnInfo> dbColumns,
+        ISchemaOperations schemaOps)
+    {
+        var entityNames = new HashSet<string>(
+            entityColumns.Select(c => c.Name), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dbCol in dbColumns)
+        {
+            if (entityNames.Contains(dbCol.Name)) continue;   // still mapped
+            if (dbCol.IsNullable) continue;                   // already safe
+            if (dbCol.IsPrimaryKey) continue;                 // PK drift — surface via insert failure instead of silently relaxing
+
+            schemaOps.AlterColumn(dbName, tableName, dbCol.Name,
+                dbCol.Type, newNullable: true, dbColumns);
+
+            SchemaLog.Logger.LogWarning(
+                "Orphan column {Table}.{Column} relaxed to NULLABLE " +
+                "(present in DB, missing from entity {Entity}). " +
+                "Drop manually via sp_column_drop when confirmed safe.",
+                tableName, dbCol.Name, typeof(T).Name);
+        }
     }
 
     private static bool ColumnsMatch(ProviderColumnInfo dbColumn, ColumnDefinition entityColumn, ISchemaOperations schemaOps)

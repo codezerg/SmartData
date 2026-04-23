@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SmartData.Core.Api;
 using SmartData.Core.BinarySerialization;
 using SmartData.Server;
@@ -18,7 +19,11 @@ public static class WebApplicationExtensions
         // Wire the tracking subsystem's static logger hook — used by sticky-
         // resolution warnings emitted from TrackingSchemaManager<T>, which is
         // a static generic class and therefore can't take ILogger via DI.
-        TrackingLog.SetFactory(app.Services.GetRequiredService<ILoggerFactory>());
+        var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+        TrackingLog.SetFactory(loggerFactory);
+        SchemaLog.SetFactory(loggerFactory);
+        SchemaLog.RelaxOrphanNotNull =
+            app.Services.GetRequiredService<IOptions<SmartDataOptions>>().Value.RelaxOrphanNotNull;
 
         app.Services.GetRequiredService<DatabaseManager>().EnsureMasterDatabase();
         app.Services.GetRequiredService<SettingsService>().LoadFromDatabase();

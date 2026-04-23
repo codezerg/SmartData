@@ -36,6 +36,16 @@ public class SmartDataOptions
     public SchemaMode SchemaMode { get; set; } = SchemaMode.Auto;
 
     /// <summary>
+    /// When an entity removes or renames a property, the old column stays in the
+    /// DB because Auto mode never drops columns. If that column is NOT NULL,
+    /// inserts that don't supply a value fail. When true (default), Auto mode
+    /// relaxes orphan NOT NULL columns to NULLABLE so inserts keep working —
+    /// no data is dropped. Drops remain manual via <c>sp_column_drop</c>.
+    /// Ignored when <see cref="SchemaMode"/> is <see cref="SchemaMode.Manual"/>.
+    /// </summary>
+    public bool RelaxOrphanNotNull { get; set; } = true;
+
+    /// <summary>
     /// When true, error responses include exception details (ex.Message).
     /// When false, clients receive a generic error message and details are logged server-side only.
     /// Defaults to true in Development, false otherwise.
