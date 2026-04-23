@@ -6,5 +6,7 @@
   <Project Path="src/SmartData.Core/SmartData.Core.csproj" />
   <Project Path="src/SmartData.Server/SmartData.Server.csproj" />
   <Project Path="src/SmartData.Server.Sqlite/SmartData.Server.Sqlite.csproj" />
+  <Project Path="src/SmartData.Server.SqliteEncrypted/SmartData.Server.SqliteEncrypted.csproj" />
   <Project Path="src/SmartData.Server.SqlServer/SmartData.Server.SqlServer.csproj" />
+  <Project Path="tests/SmartData.Server.SqliteEncrypted.Tests/SmartData.Server.SqliteEncrypted.Tests.csproj" />
 </Solution>

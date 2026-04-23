@@ -26,7 +26,7 @@ cd site && npm install && npm run dev      # dev server
 cd site && npm run build                   # static build
 ```
 
-There is **no test project in the solution** — do not invent `dotnet test` instructions. Testing strategy is left to the consuming app (see `docs/SmartData.Guide.md` → *What This Guide Doesn't Cover*).
+Test harnesses live under `tests/` (e.g. `tests/SmartData.TrackingTest/`, `tests/SmartData.Server.SqliteEncrypted.Tests/`). They are **not** xUnit — each is an `OutputType=Exe` console program with a Case/Expect pattern, run via `dotnet run --project tests/<name>`; exit code = failure count. No `dotnet test` runner is wired up. Broader testing strategy for consuming apps is left to those apps (see `docs/SmartData.Guide.md` → *What This Guide Doesn't Cover*).
 
 ## Architecture
 

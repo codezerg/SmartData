@@ -13,9 +13,9 @@ public class SqliteDatabaseProvider : IDatabaseProvider
         _dataDirectory = options.Value.DataDirectory;
         Directory.CreateDirectory(_dataDirectory);
 
-        Schema = new SqliteSchemaProvider(this);
-        SchemaOperations = new SqliteSchemaOperations(this);
-        RawData = new SqliteRawDataProvider(this);
+        Schema = CreateSchemaProvider();
+        SchemaOperations = CreateSchemaOperations();
+        RawData = CreateRawDataProvider();
     }
 
     public ISchemaProvider Schema { get; }
@@ -23,10 +23,40 @@ public class SqliteDatabaseProvider : IDatabaseProvider
     public IRawDataProvider RawData { get; }
     public string DataDirectory => _dataDirectory;
 
-    public DataConnection OpenConnection(string dbName)
+    public virtual DataConnection OpenConnection(string dbName)
     {
-        var connStr = $"Data Source={GetDbFilePath(dbName)}";
-        var db = new DataConnection("SQLite", connStr);
+        var db = new DataConnection("SQLite", BuildConnectionString(dbName));
+        // Hook: runs before any other SQL. SQLCipher-based subclasses issue
+        // PRAGMA key here — it must precede every other statement, including
+        // the throughput pragmas below.
+        OnConnectionOpened(db, dbName);
+        ApplyPragmas(db);
+        return db;
+    }
+
+    /// <summary>
+    /// Builds the ADO.NET connection string used by <see cref="OpenConnection"/>.
+    /// Subclasses override to add provider-specific keywords (e.g. pooling off
+    /// for one-shot rekey connections).
+    /// </summary>
+    protected virtual string BuildConnectionString(string dbName) =>
+        $"Data Source={GetDbFilePath(dbName)}";
+
+    /// <summary>
+    /// Runs immediately after the <see cref="DataConnection"/> is constructed
+    /// and before <see cref="ApplyPragmas"/>. Default is a no-op. Encrypted
+    /// providers MUST override this to execute <c>PRAGMA key</c> — SQLCipher
+    /// rejects every other statement until the key is supplied.
+    /// </summary>
+    protected virtual void OnConnectionOpened(DataConnection db, string dbName) { }
+
+    /// <summary>
+    /// Applies the throughput pragmas (WAL, synchronous=NORMAL, busy_timeout,
+    /// cache_size, temp_store). Override to change the mix; call <c>base</c>
+    /// first if you only want to add on top.
+    /// </summary>
+    protected virtual void ApplyPragmas(DataConnection db)
+    {
         // WAL: concurrent readers alongside a writer, no readers-block-writers.
         db.Execute("PRAGMA journal_mode = WAL;");
         // NORMAL: one fsync per checkpoint instead of per commit. Safe under WAL —
@@ -42,8 +72,11 @@ public class SqliteDatabaseProvider : IDatabaseProvider
         db.Execute("PRAGMA cache_size = -20000;");
         // Temp B-trees and sort spills stay in memory instead of a temp file.
         db.Execute("PRAGMA temp_store = MEMORY;");
-        return db;
     }
+
+    protected virtual ISchemaProvider   CreateSchemaProvider()   => new SqliteSchemaProvider(this);
+    protected virtual ISchemaOperations CreateSchemaOperations() => new SqliteSchemaOperations(this);
+    protected virtual IRawDataProvider  CreateRawDataProvider()  => new SqliteRawDataProvider(this);
 
     public void EnsureDatabase(string dbName)
     {
@@ -86,12 +119,12 @@ public class SqliteDatabaseProvider : IDatabaseProvider
                $"ORDER BY rank LIMIT {limit}";
     }
 
-    // --- Internal helpers used by Sqlite sub-providers ---
+    // --- Helpers exposed to sibling sub-providers and subclasses ---
 
-    internal string GetConnectionString(string dbName) =>
-        $"Data Source={GetDbFilePath(dbName)}";
+    protected internal string GetConnectionString(string dbName) =>
+        BuildConnectionString(dbName);
 
-    internal string GetDbFilePath(string dbName) =>
+    protected internal string GetDbFilePath(string dbName) =>
         Path.Combine(_dataDirectory, $"{dbName}.db");
 
 }

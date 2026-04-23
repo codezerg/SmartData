@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Description>SmartData SQLCipher-encrypted SQLite provider. CANNOT coexist with SmartData.Server.Sqlite in the same process — bundles conflict.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>smartdata;sqlite;sqlcipher;encryption</PackageTags>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<ItemGroup>
+		<!-- Replaces the transitive bundle_e_sqlite3 pulled in by Microsoft.Data.Sqlite
+		     with the SQLCipher-enabled native binary. SQLitePCLRaw bundles are
+		     process-exclusive: referencing both plain Sqlite and this project in
+		     one app is undefined behavior. -->
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.11" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\SmartData.Server.Sqlite\SmartData.Server.Sqlite.csproj" />
+	</ItemGroup>
+</Project>

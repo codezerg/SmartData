@@ -5,9 +5,9 @@ namespace SmartData.Server.Sqlite;
 
 public class SqliteSchemaProvider : ISchemaProvider
 {
-    private readonly SqliteDatabaseProvider _dbProvider;
+    protected readonly SqliteDatabaseProvider _dbProvider;
 
-    internal SqliteSchemaProvider(SqliteDatabaseProvider dbProvider)
+    protected internal SqliteSchemaProvider(SqliteDatabaseProvider dbProvider)
     {
         _dbProvider = dbProvider;
     }
@@ -186,7 +186,13 @@ public class SqliteSchemaProvider : ISchemaProvider
         return results;
     }
 
-    private SqliteConnection OpenConnection(string dbName)
+    /// <summary>
+    /// Opens a raw <see cref="SqliteConnection"/> for the named database.
+    /// Override in an encrypted subclass to execute <c>PRAGMA key</c>
+    /// immediately after <see cref="SqliteConnection.Open"/> and before any
+    /// caller sees the connection.
+    /// </summary>
+    protected virtual SqliteConnection OpenConnection(string dbName)
     {
         var conn = new SqliteConnection(_dbProvider.GetConnectionString(dbName));
         conn.Open();

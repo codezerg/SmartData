@@ -70,6 +70,7 @@ export default defineConfig({
 					items: [
 						{ label: 'SmartData.Server', slug: 'reference/smartdata-server' },
 						{ label: 'SmartData.Server.Sqlite', slug: 'reference/smartdata-server-sqlite' },
+						{ label: 'SmartData.Server.SqliteEncrypted', slug: 'reference/smartdata-server-sqliteencrypted' },
 						{ label: 'SmartData.Server.SqlServer', slug: 'reference/smartdata-server-sqlserver' },
 						{ label: 'SmartData.Client', slug: 'reference/smartdata-client' },
 						{ label: 'SmartData.Core', slug: 'reference/smartdata-core' },

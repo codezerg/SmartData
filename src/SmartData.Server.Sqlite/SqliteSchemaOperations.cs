@@ -5,9 +5,9 @@ namespace SmartData.Server.Sqlite;
 
 public class SqliteSchemaOperations : ISchemaOperations
 {
-    private readonly SqliteDatabaseProvider _dbProvider;
+    protected readonly SqliteDatabaseProvider _dbProvider;
 
-    internal SqliteSchemaOperations(SqliteDatabaseProvider dbProvider)
+    protected internal SqliteSchemaOperations(SqliteDatabaseProvider dbProvider)
     {
         _dbProvider = dbProvider;
     }
@@ -543,7 +543,11 @@ public class SqliteSchemaOperations : ISchemaOperations
         return " DEFAULT ''";
     }
 
-    private SqliteConnection OpenConnection(string dbName)
+    /// <summary>
+    /// Opens a raw <see cref="SqliteConnection"/> for the named database.
+    /// See <see cref="SqliteSchemaProvider"/> for the extensibility contract.
+    /// </summary>
+    protected virtual SqliteConnection OpenConnection(string dbName)
     {
         var conn = new SqliteConnection(_dbProvider.GetConnectionString(dbName));
         conn.Open();

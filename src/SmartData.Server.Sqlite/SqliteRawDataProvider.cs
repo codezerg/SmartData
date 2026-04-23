@@ -7,15 +7,17 @@ namespace SmartData.Server.Sqlite;
 
 public class SqliteRawDataProvider : IRawDataProvider
 {
-    private readonly SqliteDatabaseProvider _dbProvider;
+    protected readonly SqliteDatabaseProvider _dbProvider;
 
-    internal SqliteRawDataProvider(SqliteDatabaseProvider dbProvider)
+    protected internal SqliteRawDataProvider(SqliteDatabaseProvider dbProvider)
     {
         _dbProvider = dbProvider;
     }
 
     public IDataReader OpenReader(string dbName, string table)
     {
+        // Route through OpenConnection so encrypted subclasses apply PRAGMA key
+        // before the reader is constructed.
         var conn = OpenConnection(dbName);
         var cmd = conn.CreateCommand();
         cmd.CommandText = $"SELECT * FROM [{table}]";
@@ -294,7 +296,11 @@ public class SqliteRawDataProvider : IRawDataProvider
 
     // --- Helpers ---
 
-    private SqliteConnection OpenConnection(string dbName)
+    /// <summary>
+    /// Opens a raw <see cref="SqliteConnection"/> for the named database.
+    /// See <see cref="SqliteSchemaProvider"/> for the extensibility contract.
+    /// </summary>
+    protected virtual SqliteConnection OpenConnection(string dbName)
     {
         var conn = new SqliteConnection(_dbProvider.GetConnectionString(dbName));
         conn.Open();

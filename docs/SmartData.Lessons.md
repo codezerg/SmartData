@@ -110,6 +110,41 @@ For release packaging when ProjectReference isn't an option:
 rm -rf ~/.nuget/packages/smartdata.* && dotnet restore --force
 ```
 
+## 7. SQLitePCLRaw bundles are process-exclusive
+
+**Files:** `src/SmartData.Server.Sqlite/*.csproj` (transitively `bundle_e_sqlite3` via `Microsoft.Data.Sqlite`) vs. `src/SmartData.Server.SqliteEncrypted/*.csproj` (`bundle_e_sqlcipher`).
+
+**Rule:** A process can load **one** `SQLitePCLRaw` bundle, not both. The encrypted provider ships as a separate NuGet package precisely so transitive graphs cannot silently end up with both — consumers must choose one or the other at the app level.
+
+**Why:** Both bundles register native `sqlite3_*` symbols via `SQLitePCL.Batteries_V2.Init()`. Whichever one runs first wins; the other's initialization is a no-op but any code that relied on the losing bundle's behavior quietly diverges. Detected by crashes on first `Open()` when both flow in transitively.
+
+**Do NOT** add a `SmartData.Server.Sqlite` flag that swaps bundles at runtime — it would make the conflict internal and invisible. Two packages, loud README, clean break.
+
+## 8. SQLCipher `PRAGMA key` must run before every other statement
+
+**Files:** `src/SmartData.Server.Sqlite/SqliteDatabaseProvider.cs` (`OnConnectionOpened` hook between construction and `ApplyPragmas`), `src/SmartData.Server.SqliteEncrypted/Encrypted*Provider.cs` (each overrides `OpenConnection` to run `ApplyKey` immediately after `conn.Open()`).
+
+**Rule:** Every freshly-opened connection — `DataConnection` or raw `SqliteConnection` — must issue `PRAGMA key = …` as its first statement. Only then can pragmas, reads, or writes run.
+
+**Why:** SQLCipher intercepts the first real read and errors if the key was never supplied, but `PRAGMA key` itself always returns success. Meaning: if you issue `PRAGMA journal_mode` first and then `PRAGMA key`, the journal pragma silently fails under the hood and later reads error with `file is not a database`. The `OnConnectionOpened` hook exists as a separate step *before* `ApplyPragmas` for exactly this ordering, and each sub-provider in `SmartData.Server.Sqlite` had to grow its own override seam because they each open raw `SqliteConnection` instances outside the `DataConnection` path.
+
+**Verification for rekey:** `PRAGMA key` never errors, so the rekey path forces a `SELECT count(*) FROM sqlite_master` read immediately after keying to validate the current key before calling `PRAGMA rekey`. Without that forced read, a wrong `CurrentKey` would silently proceed to rekey with no data visible — catastrophic.
+
+## 9. `SchemaManager<T>._ensured` is process-static and directory-unaware
+
+**File:** `src/SmartData.Server/SchemaManager.cs` — `private static readonly HashSet<string> _ensured` keyed by `$"{dbName}::{tableName}"`.
+
+**Rule:** `SchemaManager<T>.EnsureSchema(dbName, provider)` remembers it has ensured `(dbName, table)` for the rest of the process. The key does **not** include the data directory or the provider instance.
+
+**Why it bites test harnesses:** the obvious "fresh temp dir per test" isolation pattern silently fails. Test N creates master.db in `/tmp/a/`, populates `_ensured` with `"master::_sys_users"`. Test N+1 points a fresh provider at `/tmp/b/master.db` (empty file) — `EnsureMasterDatabase` → `SchemaManager<SysUser>.EnsureSchema` short-circuits on the cached key, skips `CreateTable`, and every subsequent query errors with `no such table: _sys_users`. The error surfaces far from the cause.
+
+**Workarounds:**
+- Share one app + one data dir across tests (what `tests/SmartData.Server.SqliteEncrypted.Tests/` does); order mutating tests last.
+- Or reflection-clear the static field between tests (fragile — only acceptable if per-test process isolation is too expensive).
+- Do **not** try to solve it by making `_ensured` instance-scoped on a manager: every consumer today assumes once-per-process ensure semantics, and loosening that would re-check schema on every request.
+
+Detected when the encrypted provider's test harness failed five tests with `no such table: _sys_users` after the per-test temp-dir rework.
+
 ## Related docs
 
 - `CLAUDE.md` — conventions, build commands, architecture overview (the "onboarding" doc)
