@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SmartData.Server.SqliteEncrypted.Tests": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:52903;http://localhost:52904"
+    }
+  }
+}
