@@ -1,0 +1,6 @@
+@inject DocsLoader Docs
+@model DocPage
+@{
+    ViewData["Title"] = Model.Title + " — " + (Docs.Config.Title ?? "Docs");
+}
+@await Html.PartialAsync("_Article", Model)

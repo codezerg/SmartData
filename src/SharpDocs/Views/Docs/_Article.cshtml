@@ -1,0 +1,33 @@
+@model DocPage
+<div class="row g-4">
+  <div class="col-lg-9 col-xl-10">
+    <article>
+      <h1 id="top" class="mb-2">@Model.Title</h1>
+      @if (!string.IsNullOrWhiteSpace(Model.Description))
+      {
+        <p class="lead text-body-secondary">@Model.Description</p>
+      }
+      <hr>
+      <div>@Html.Raw(Model.Html)</div>
+    </article>
+  </div>
+  @if (Model.Headings.Count > 0)
+  {
+    <aside class="d-none d-lg-block col-lg-3 col-xl-2">
+      <nav class="position-sticky top-0 pt-3" aria-label="On this page">
+        <h6 class="text-uppercase text-body-secondary small mb-2">On this page</h6>
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link py-1" href="#top">@Model.Title</a>
+          </li>
+          @foreach (var h in Model.Headings)
+          {
+            <li class="nav-item">
+              <a class="nav-link py-1 @(h.Level == 3 ? "ps-3 small" : "")" href="#@h.Id">@h.Text</a>
+            </li>
+          }
+        </ul>
+      </nav>
+    </aside>
+  }
+</div>

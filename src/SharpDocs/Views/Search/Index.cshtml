@@ -1,0 +1,9 @@
+@inject DocsLoader Docs
+@model SearchHit[]
+@{
+    ViewData["Title"] = "Search — " + (Docs.Config.Title ?? "Docs");
+    var q = ViewData["Query"] as string;
+}
+<h1>Search</h1>
+<p class="text-body-secondary">Results for "<strong>@q</strong>"</p>
+@await Html.PartialAsync("_Results", Model)

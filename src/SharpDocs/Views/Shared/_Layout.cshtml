@@ -1,0 +1,132 @@
+@inject Microsoft.Extensions.Options.IOptions<SharpDocsOptions> SiteOptions
+@inject DocsLoader Docs
+@{
+    var opts = SiteOptions.Value;
+    var site = Docs.Config;
+    var brandName = site.Title ?? "Docs";
+    var githubUrl = site.Github;
+    var nav = ViewData["Nav"] as IReadOnlyList<NavNode> ?? new List<NavNode>();
+    var activeSlug = ViewData["ActiveSlug"] as string;
+    var pageTitle = ViewData["Title"] as string ?? brandName;
+}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@pageTitle</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">@brandName</a>
+    <button class="navbar-toggler" type="button"
+            data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <form class="d-flex col-lg-5 mx-lg-auto my-2 my-lg-0 position-relative" role="search" action="/search" method="get">
+        <input class="form-control" type="search" name="q" placeholder="Search docs…"
+               hx-get="/search"
+               hx-trigger="input changed delay:200ms, search"
+               hx-target="#search-results"
+               hx-swap="innerHTML"
+               hx-params="q"
+               autocomplete="off">
+        <div id="search-results"
+             class="position-absolute top-100 start-0 end-0 z-3 bg-body border rounded shadow-sm mt-1 overflow-auto d-none"></div>
+      </form>
+      <ul class="navbar-nav mb-2 mb-lg-0">
+        @foreach (var link in opts.NavLinks)
+        {
+          <li class="nav-item"><a class="nav-link" href="@link.Href">@link.Label</a></li>
+        }
+        @if (!string.IsNullOrWhiteSpace(githubUrl))
+        {
+          <li class="nav-item"><a class="nav-link" href="@githubUrl" target="_blank" rel="noopener">GitHub</a></li>
+        }
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    @if (nav.Count > 0)
+    {
+      <aside class="col-md-3 col-lg-2 border-end py-4">
+        <nav class="nav flex-column">
+          @foreach (var node in nav)
+          {
+            if (node.Slug != null)
+            {
+              <a class="nav-link @(node.Slug == activeSlug ? "active" : "")"
+                 href="/@node.Slug"
+                 hx-get="/@node.Slug"
+                 hx-target="#article"
+                 hx-push-url="true"
+                 hx-swap="innerHTML">@node.Label</a>
+            }
+            else
+            {
+              <h6 class="text-uppercase text-body-secondary small mt-3 mb-1 px-2">@node.Label</h6>
+              @foreach (var c in node.Children)
+              {
+                <a class="nav-link ps-3 @(c.Slug == activeSlug ? "active" : "")"
+                   href="/@c.Slug"
+                   hx-get="/@c.Slug"
+                   hx-target="#article"
+                   hx-push-url="true"
+                   hx-swap="innerHTML">@c.Label</a>
+              }
+            }
+          }
+        </nav>
+      </aside>
+      <main class="col-md-9 col-lg-10 p-4">
+        <div id="article">
+          @RenderBody()
+        </div>
+      </main>
+    }
+    else
+    {
+      <main class="col-12 py-4">@RenderBody()</main>
+    }
+  </div>
+</div>
+
+<script>
+  function highlightAll() {
+    if (typeof hljs === 'undefined') return;
+    document.querySelectorAll('pre code:not(.hljs)').forEach((el) => {
+      try { hljs.highlightElement(el); } catch (e) { console.warn(e); }
+    });
+  }
+  highlightAll();
+  function toggleSearchResults() {
+    const box = document.getElementById('search-results');
+    if (!box) return;
+    box.classList.toggle('d-none', box.innerHTML.trim() === '');
+  }
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    highlightAll();
+    if (e.target && e.target.id === 'search-results') toggleSearchResults();
+    if (e.target && e.target.id === 'article') window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('search-results');
+    if (box && !box.contains(e.target) && e.target.name !== 'q') {
+      box.innerHTML = '';
+      toggleSearchResults();
+    }
+  });
+</script>
+</body>
+</html>
